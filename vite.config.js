@@ -1,8 +1,7 @@
 import { defineConfig } from 'vite'
 
-// Must match the GitHub repo name for Project Pages:
-// https://<user>.github.io/<repo>/
-// If you add a custom domain only (no github.io URL), you can use base: '/'.
+// Root-relative assets (base: '/') — use with a custom domain or host at site root.
+// If you ever need https://<user>.github.io/<repo>/ without a custom domain, set base to '/<repo>/'.
 export default defineConfig({
-  base: '/webdev-experiments/',
+  base: '/',
 })
