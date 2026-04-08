@@ -1,9 +1,11 @@
 # Deploy Vite build to gh-pages branch (peaceiris/actions-gh-pages).
-# Matches pattern from vite-deploy-demo; install uses Bun to match bun.lockb.
+# Install uses Bun to match bun.lockb.
 #
-# Repo settings required (see vite-deploy-demo README):
+# Repo settings required:
 # - Actions → General → Workflow permissions: Read and write
 # - Pages → Source: Deploy from branch → gh-pages → / (root)
+#   If the live site loads /main.js (MIME errors for CSS/SVG), Pages is
+#   serving main or /docs instead of gh-pages — fix in Settings, not in Vite.
 
 name: Deploy
 
