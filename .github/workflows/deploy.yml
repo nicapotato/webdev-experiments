@@ -41,6 +41,11 @@ jobs:
       - name: Build project
         run: bun run build
 
+      - name: Verify dist output (catch empty/partial builds)
+        run: |
+          test -f dist/index.html
+          ls -la dist/assets
+
       - name: Upload production-ready build files
         uses: actions/upload-artifact@v4
         with:
@@ -65,3 +70,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
+          # Single orphan commit per deploy so gh-pages always matches one full dist/
+          # (avoids mixed index.html + stale assets/ from partial updates).
+          force_orphan: true

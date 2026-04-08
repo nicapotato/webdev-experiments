@@ -27,6 +27,19 @@ Use **View Page Source** on the live URL (not DevTools Elements). You must see:
 
 If you still see `/main.js`, Pages is still not using `gh-pages`, or cached HTML—try a private window or wait for CDN refresh.
 
+### Blank page but title updates (stale `assets/` on `gh-pages`)
+
+If **View Page Source** shows `/assets/index-<hash>.js` but the site is white, open DevTools → **Network** and check for **404** on those JS/CSS files. On GitHub, if **`index.html`** was updated recently but the **`assets/`** folder shows an **older** last commit, `index.html` points at **new** hashed files that were never pushed—**mismatched deploy**.
+
+The workflow sets **`force_orphan: true`** on `peaceiris` so each deploy replaces `gh-pages` with a **full** `dist/` snapshot. After pulling latest `main`, push or re-run **Deploy**.
+
+**One-time reset** if the branch is still inconsistent: delete remote `gh-pages` and push `main` again (the workflow recreates the branch):
+
+```bash
+git push origin --delete gh-pages
+git push origin main
+```
+
 ## Local
 
 ```bash
