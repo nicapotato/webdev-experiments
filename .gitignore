@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+# docs/ is NOT ignored — committed static site for GitHub Pages (main /docs)
 *.local
 
 # Editor directories and files

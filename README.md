@@ -1,49 +1,52 @@
 # webdev-experiments
 
-Bun + Vite static site deployed to GitHub Pages via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) (`peaceiris/actions-gh-pages` publishes `dist/` to the **`gh-pages`** branch).
+Small **React** app built with **Vite**, deployed like **stuff**: you **build locally**, commit the **static output**, and **GitHub Pages** serves it. No deploy workflow on GitHub.
 
-## Required: GitHub Pages must serve `dist`, not source
+## Why you saw `main.js` / MIME errors
 
-If the live site shows console errors about `main.js`, `style.css`, and `javascript.svg` as module scripts, or **`vite.svg` 404**, GitHub Pages is serving the **wrong branch** (usually **`main`** with unbundled `index.html`). The production build lives only on **`gh-pages`**.
+The live site was serving **unbundled source** (`index.html` + `/main.js` imports). Browsers cannot run Vite source without `vite dev` or a **production build**. The fix is to serve **only** the **`vite build`** output (hashed JS/CSS under `assets/`), not files from repo root.
 
-### Configure once (repo Settings)
+## Deploy model (this repo)
 
-1. **Settings → Pages → Build and deployment**
-2. **Source**: **Deploy from a branch** (not “GitHub Actions” for this workflow).
-3. **Branch**: **`gh-pages`** / **`/` (root)** → Save.
-4. Do **not** publish from **`main`** or **`/docs`** for this project; use a single source.
+| Item | Value |
+|------|--------|
+| Build output | **`docs/`** (`vite.config.js` → `build.outDir`) |
+| GitHub Pages | **Branch `main`**, folder **`/docs`** |
+| Custom domain | **`public/CNAME`** → copied into `docs/` on build |
 
-Other settings:
-
-- **Settings → Actions → General → Workflow permissions**: **Read and write** (required for `peaceiris` to push `gh-pages`).
-
-### Verify after changing source
-
-Use **View Page Source** on the live URL (not DevTools Elements). You must see:
-
-- A script like **`/assets/index-<hash>.js`**
-- A stylesheet link like **`/assets/index-<hash>.css`**
-- **No** `<script src="/main.js">`
-
-If you still see `/main.js`, Pages is still not using `gh-pages`, or cached HTML—try a private window or wait for CDN refresh.
-
-### Blank page but title updates (stale `assets/` on `gh-pages`)
-
-If **View Page Source** shows `/assets/index-<hash>.js` but the site is white, open DevTools → **Network** and check for **404** on those JS/CSS files. On GitHub, if **`index.html`** was updated recently but the **`assets/`** folder shows an **older** last commit, `index.html` points at **new** hashed files that were never pushed—**mismatched deploy**.
-
-The workflow sets **`force_orphan: true`** on `peaceiris` so each deploy replaces `gh-pages` with a **full** `dist/` snapshot. After pulling latest `main`, push or re-run **Deploy**.
-
-**One-time reset** if the branch is still inconsistent: delete remote `gh-pages` and push `main` again (the workflow recreates the branch):
+After changing code:
 
 ```bash
-git push origin --delete gh-pages
+bun install
+make build    # or: bun run build
+git add docs/ index.html vite.config.js package.json src/ public/ bun.lockb
+git commit -m "Build: update site"
 git push origin main
 ```
+
+**Repo → Settings → Pages**: **Deploy from a branch** → **`main`** → **`/docs`**.  
+Remove or ignore **`gh-pages`** for this project (optional: `git push origin --delete gh-pages` once).
+
+## Options and trade-offs
+
+| Approach | Pros | Cons |
+|----------|------|------|
+| **This setup: `docs/` on `main`, manual build** | Same mental model as **stuff** (static files in git); full control; no Actions secrets; easy to debug | Must run `build` before commit; `docs/` churn in git; easy to forget a build |
+| **CI builds + `gh-pages` or artifact** | No local build; always consistent | Two workflows / branch confusion; you hit several edge cases before |
+| **No bundler (vanilla JS like `catalog.js`)** | Simplest deploy: commit HTML/CSS/JS as-is | No JSX/React without a build step or CDN hacks |
+| **React via CDN + one HTML file** | No `node` build | Awkward DX, no real modules, not great for larger apps |
+
+**Feasibility**: **Vite + React + `outDir: 'docs'`** is a common, low-friction way to get a **client-only** SPA with a **one-command build** and **static hosting**.
 
 ## Local
 
 ```bash
 bun install
-bun run dev
-bun run build   # output in dist/
+make dev
+make build
+make serve-docs   # optional: test ./docs over HTTP
 ```
+
+## DevDependencies
+
+- **Node**: `bun` / `npm` / `pnpm` all work; lockfile is `bun.lockb`.

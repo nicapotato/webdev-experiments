@@ -1,7 +1,12 @@
 import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-// Root-relative assets (base: '/') — use with a custom domain or host at site root.
-// If you ever need https://<user>.github.io/<repo>/ without a custom domain, set base to '/<repo>/'.
+// Build output goes to docs/ so GitHub Pages can use "main branch /docs" (no gh-pages CI).
 export default defineConfig({
+  plugins: [react()],
   base: '/',
+  build: {
+    outDir: 'docs',
+    emptyOutDir: true,
+  },
 })
