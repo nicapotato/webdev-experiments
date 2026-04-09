@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Build output goes to docs/ so GitHub Pages can use "main branch /docs" (no gh-pages CI).
+// Build output goes to docs/. Hub assets in public/ (e.g. public/games/) are copied here;
+// docs/games/ is gitignored — source of truth is public/games/ only.
 export default defineConfig({
   plugins: [react()],
   base: '/',

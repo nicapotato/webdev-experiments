@@ -10,7 +10,12 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-# docs/ is NOT ignored — committed static site for GitHub Pages (main /docs)
+# docs/ is NOT ignored — committed static shell for GitHub Pages (main /docs).
+# Games are copied from public/games/ at build time; do not commit the duplicate.
+docs/games/
+# Tutorial clones sometimes include nested repos — never track
+public/games/**/.git/
+docs/games/**/.git/
 *.local
 
 # Editor directories and files

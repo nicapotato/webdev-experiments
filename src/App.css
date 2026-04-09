@@ -1,96 +1,265 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
+  color: #e8eaed;
+  background-color: #0d1117;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+* {
+  box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
+html,
+body,
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  height: 100%;
+  margin: 0;
+  min-width: 320px;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vanilla:hover {
-  filter: drop-shadow(0 0 2em #f7df1eaa);
+/* Home: natural scroll height */
+.app-root--home {
+  min-height: 100%;
 }
 
-.card {
-  padding: 2em;
+/* Game: lock to one viewport tall, iframe fills remainder */
+.app-root--game {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0d1117;
 }
 
-.read-the-docs {
-  color: #888;
+.game-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid #21262d;
 }
 
-button {
+.game-back {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid #30363d;
   border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+  background: #21262d;
+  color: #e8eaed;
+  font-size: 1.1rem;
+  line-height: 1;
   cursor: pointer;
-  transition: border-color 0.25s;
 }
-button:hover {
-  border-color: #646cff;
+
+.game-back:hover {
+  background: #30363d;
 }
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+
+.game-header__title {
+  font-weight: 600;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Top-aligned row: iframe centered horizontally and grows to fill viewport below header */
+.iframe-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background: #010409;
+}
+
+.game-frame {
+  flex: 1 1 auto;
+  align-self: stretch;
+  width: min(100%, 100vw);
+  min-height: 0;
+  max-width: 100%;
+  border: 0;
+  display: block;
+}
+
+.hub {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+.hub__header {
+  margin-bottom: 2rem;
+}
+
+.hub__title {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.hub__grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.hub-card {
+  display: flex;
+  flex: 1 1 200px;
+  min-height: 5.5rem;
+  max-width: 100%;
+  min-width: min(100%, 200px);
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font: inherit;
+  cursor: pointer;
+  color: #f0f6fc;
+  font-weight: 600;
+  font-size: 1.05rem;
+  text-align: center;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+}
+
+.hub-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  filter: brightness(1.06);
+}
+
+.hub-card:focus-visible {
+  outline: 2px solid #f0f6fc;
+  outline-offset: 3px;
+}
+
+.hub-card__title {
+  margin: 0;
+}
+
+.hub-card--tower {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8a 50%, #3d7ab8 100%);
+}
+
+.hub-card--kings {
+  background: linear-gradient(135deg, #3d2914 0%, #6b4423 45%, #a67c52 100%);
+}
+
+.hub-card--fight {
+  background: linear-gradient(135deg, #4a1538 0%, #8b2942 50%, #c94c4c 100%);
+}
+
+.hub-card--sunny {
+  background: linear-gradient(135deg, #1a4d3a 0%, #2d8a6e 45%, #5fd4b3 100%);
+}
+
+.hub__credit {
+  margin: 2rem 0 0;
+  font-size: 0.9rem;
+  color: #8b949e;
+  line-height: 1.45;
+}
+
+.hub__credit a {
+  color: #58a6ff;
+  text-decoration: none;
+}
+
+.hub__credit a:hover {
+  text-decoration: underline;
+}
+
+.game-header__main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.game-header__credit {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #8b949e;
+  text-decoration: none;
+}
+
+.game-header__credit:hover {
+  color: #58a6ff;
+  text-decoration: underline;
 }
 
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    color: #1f2328;
+    background-color: #f6f8fa;
   }
-  a:hover {
-    color: #747bff;
+
+  .app-root--game {
+    background: #f6f8fa;
   }
-  button {
-    background-color: #f9f9f9;
+
+  .game-header {
+    border-bottom-color: #d8dee4;
+  }
+
+  .game-back {
+    background: #f6f8fa;
+    border-color: #d0d7de;
+    color: #1f2328;
+  }
+
+  .game-back:hover {
+    background: #eaeef2;
+  }
+
+  .iframe-stage {
+    background: #ffffff;
+  }
+
+  .hub__title {
+    color: #1f2328;
+  }
+
+  .hub__credit {
+    color: #57606a;
+  }
+
+  .hub__credit a {
+    color: #0969da;
+  }
+
+  .game-header__credit {
+    color: #57606a;
+  }
+
+  .game-header__credit:hover {
+    color: #0969da;
+  }
+
+  .hub-card {
+    color: #ffffff;
+    border-color: rgba(0, 0, 0, 0.08);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   }
 }
