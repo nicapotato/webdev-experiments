@@ -13,6 +13,7 @@ The live site was serving **unbundled source** (`index.html` + `/main.js` import
 | Build output | **`docs/`** ([vite.config.ts](vite.config.ts) → `build.outDir`) |
 | GitHub Pages | **Branch `main`**, folder **`/docs`** |
 | Custom domain | **`public/CNAME`** → copied into `docs/` on build |
+| `/games/*` static files | **`docs/games/`** — Vite copies `public/games/` here on build; **commit `docs/games/`** so branch-based Pages serves iframe games and assets (do not gitignore it). |
 
 After changing code:
 

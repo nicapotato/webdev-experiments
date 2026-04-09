@@ -1,0 +1,365 @@
+Override
+  button
+  styles
+  to
+  match
+  the
+  grey
+  color
+  scheme
+  of
+  the
+  game
+  board
+  .title-bar
+  button {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+  border: 1px solid #444444 !important;
+  border-radius: 4px !important;
+  padding: 5px 10px !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s !important;
+}
+
+.title-bar button:hover {
+  background-color: #444444 !important;
+}
+
+/* Style the admin controls dropdown buttons */
+.admin-popover button,
+.entities-popover button {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+  border: 1px solid #444444 !important;
+}
+
+.admin-popover button:hover,
+.entities-popover button:hover {
+  background-color: #444444 !important;
+}
+
+/* Center the title bar header */
+.title-bar {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  position: relative !important;
+  width: 100% !important;
+}
+
+.title-bar h1 {
+  text-align: center !important;
+  flex: none !important;
+  margin: 0 !important;
+  position: absolute !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  white-space: nowrap !important;
+  z-index: 1 !important;
+}
+
+.admin-controls {
+  position: absolute !important;
+  right: 10px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+/* Player container styles */
+.player-container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  margin-right: 15px !important;
+  min-width: 140px !important;
+}
+
+#player-sprite {
+  cursor: pointer !important;
+  border: 1px solid #444444 !important;
+  border-radius: 4px !important;
+  background-color: #2a2a2a !important;
+  margin-bottom: 8px !important;
+  image-rendering: pixelated !important;
+  image-rendering: -moz-crisp-edges !important;
+  image-rendering: crisp-edges !important;
+  image-rendering: -webkit-crisp-edges !important;
+  image-rendering: -webkit-optimize-contrast !important;
+  -ms-interpolation-mode: nearest-neighbor !important;
+  width: 128px !important;
+  height: 128px !important;
+}
+
+#player-sprite:hover {
+  border-color: #666666 !important;
+  background-color: #333333 !important;
+}
+
+/* Reorganize the level container to show player name below level */
+.level-container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 140px !important;
+}
+
+/* Move player name to be in the level container */
+#player-name {
+  font-size: 20px !important;
+  color: #ffffff !important;
+  text-align: center !important;
+  font-weight: bold !important;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8) !important;
+  text-rendering: optimizeSpeed !important;
+  font-smooth: never !important;
+  -webkit-font-smoothing: none !important;
+  margin-top: 4px !important;
+  order: 2 !important;
+}
+
+/* Ensure level display comes before player name */
+.level-display {
+  order: 1 !important;
+}
+
+/* Completed caves section styles */
+.completed-caves-section {
+  margin-bottom: 15px !important;
+  padding: 10px !important;
+  background-color: rgba(0, 100, 0, 0.1) !important;
+  border: 1px solid rgba(0, 150, 0, 0.3) !important;
+  border-radius: 4px !important;
+}
+
+.completed-caves-header {
+  font-weight: bold !important;
+  color: #4caf50 !important;
+  margin-bottom: 8px !important;
+  font-size: 14px !important;
+  text-align: center !important;
+}
+
+.completed-caves-container {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  padding: 8px !important;
+  border-radius: 3px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 5px !important;
+  justify-content: center !important;
+}
+
+.cave-number-button {
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%) !important;
+  color: #ffffff !important;
+  border: 2px solid #4caf50 !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  min-width: 45px !important;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.cave-number-button::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  ) !important;
+  transition: left 0.5s ease !important;
+  pointer-events: none !important;
+}
+
+.cave-number-button:hover {
+  background: linear-gradient(135deg, #5cbf60 0%, #4caf50 100%) !important;
+  border-color: #5cbf60 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.5) !important;
+}
+
+.cave-number-button:hover::before {
+  left: 100% !important;
+}
+
+.cave-number-button:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3) !important;
+}
+
+/* Cave details popover styles */
+.cave-details-popover {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border: 2px solid #4caf50;
+  border-radius: 12px;
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(76, 175, 80, 0.3);
+  padding: 0;
+  min-width: 280px;
+  max-width: 350px;
+  backdrop-filter: blur(10px);
+  font-family: "Arial", sans-serif;
+  animation: popoverFadeIn 0.3s ease-out;
+  overflow: hidden;
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.cave-details-content {
+  padding: 0;
+}
+
+.cave-details-header {
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 18px;
+  text-align: center;
+  padding: 12px 20px;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 1px;
+  border-bottom: 2px solid #45a049;
+}
+
+.cave-details-date {
+  color: #87ceeb;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 20px 8px 20px;
+  margin: 0;
+  background: rgba(135, 206, 235, 0.1);
+  border-left: 4px solid #87ceeb;
+}
+
+.cave-details-time {
+  color: #ffd700;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 8px 20px;
+  margin: 0;
+  background: rgba(255, 215, 0, 0.1);
+  border-left: 4px solid #ffd700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cave-details-time::before {
+  content: "⏱️";
+  font-size: 16px;
+}
+
+.cave-details-achievements {
+  padding: 12px 20px 16px 20px;
+  margin: 0;
+  line-height: 1.4;
+  font-weight: 500;
+  min-height: 24px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cave-details-achievements:not([style*="italic"]) {
+  color: #98fb98;
+  border-left: 4px solid #98fb98;
+  background: rgba(152, 251, 152, 0.1);
+}
+
+.cave-details-achievements[style*="italic"] {
+  color: #888;
+  border-left: 4px solid #666;
+  background: rgba(136, 136, 136, 0.1);
+}
+
+.cave-details-achievements::before {
+  content: "�� ";
+  font-size: 14px;
+  margin-right: 4px;
+}
+
+.cave-details-achievements[style*="italic"]::before {
+  content: "📝 ";
+  filter: grayscale(100%);
+}
+
+.completed-cave-item {
+  margin-bottom: 10px !important;
+  padding: 8px !important;
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 4px !important;
+}
+
+.cave-number {
+  font-weight: bold !important;
+  color: #4caf50 !important;
+  font-size: 13px !important;
+  margin-bottom: 3px !important;
+}
+
+.cave-completion-date {
+  color: #cccccc !important;
+  font-size: 11px !important;
+  margin-bottom: 2px !important;
+}
+
+.cave-elapsed-time {
+  color: #87ceeb !important;
+  font-size: 11px !important;
+  margin-bottom: 2px !important;
+  font-weight: bold !important;
+}
+
+.cave-achievements {
+  color: #ffd700 !important;
+  font-size: 11px !important;
+  font-style: italic !important;
+}
+
+.completed-caves-text {
+  color: #ffffff !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  text-align: center !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+.section-header {
+  font-weight: bold !important;
+  color: #ffffff !important;
+  margin-bottom: 10px !important;
+  font-size: 14px !important;
+  text-align: center !important;
+  border-bottom: 1px solid #444 !important;
+  padding-bottom: 5px !important;
+}
+
+.achievements-header {
+  color: #ffa500 !important;
+}

@@ -11,8 +11,8 @@ node_modules
 dist
 dist-ssr
 # docs/ is NOT ignored — committed static shell for GitHub Pages (main /docs).
-# Games are copied from public/games/ at build time; do not commit the duplicate.
-docs/games/
+# docs/games/ is produced by `vite build` from public/games/ and must be committed
+# so branch-based Pages deploy includes /games/* (ignored entries are never pushed).
 # Tutorial clones sometimes include nested repos — never track
 public/games/**/.git/
 docs/games/**/.git/
