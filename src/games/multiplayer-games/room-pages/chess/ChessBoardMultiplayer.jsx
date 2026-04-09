@@ -24,6 +24,8 @@ const ChessBoardMultiplayer = ({
   mandatoryPieceSquares = [],
   singleLegalMoveHighlight = false,
   comboContinuePiece = null,
+  /** King square when that side is in check (red highlight). */
+  checkSquare = null,
 }) => {
   const [tileSize, setTileSize] = useState(64);
 
@@ -108,6 +110,11 @@ const ChessBoardMultiplayer = ({
     comboContinuePiece.row === row &&
     comboContinuePiece.col === col;
 
+  const isCheckSquare = (row, col) =>
+    checkSquare &&
+    checkSquare.row === row &&
+    checkSquare.col === col;
+
   const isEmptySquare = (piece) =>
     !piece || piece.type === ChessPieceType.Empty;
 
@@ -129,7 +136,10 @@ const ChessBoardMultiplayer = ({
     }
 
     if (selected) {
-      if (isComboContinueSquare(row, col)) {
+      if (isCheckSquare(row, col)) {
+        classes +=
+          "ring-4 ring-red-500 ring-inset shadow-[inset_0_0_14px_rgba(239,68,68,0.55)] ";
+      } else if (isComboContinueSquare(row, col)) {
         classes +=
           "ring-4 ring-orange-400 ring-inset shadow-[inset_0_0_12px_rgba(251,146,60,0.45)] ";
       } else {
@@ -147,6 +157,14 @@ const ChessBoardMultiplayer = ({
       }
     } else if (mandatory && piece && !isEmptySquare(piece) && !selected) {
       classes += "ring-2 ring-orange-400 ring-inset ";
+    } else if (
+      isCheckSquare(row, col) &&
+      piece &&
+      !isEmptySquare(piece) &&
+      !selected
+    ) {
+      classes +=
+        "ring-4 ring-red-500 ring-inset shadow-[inset_0_0_14px_rgba(239,68,68,0.45)] ";
     }
 
     return classes;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -27,9 +27,12 @@ import {
   getChessPieceSymbol,
   getChessColorName,
   positionsEqual,
-  isValidChessPosition,
-  BOARD_SIZE,
 } from "@/games/multiplayer-games/chess/chess-game-multiplayer";
+import {
+  getLegalMovesForSquare,
+  findKingSquareForSide,
+  type ChessMoveHint,
+} from "@/games/chess/chess-multiplayer-legal";
 import { getCurrentPlayer } from "@/lib/player-utils";
 
 export default function ChessGamePage() {
@@ -46,7 +49,7 @@ export default function ChessGamePage() {
   const [selectedSquare, setSelectedSquare] = useState<ChessPosition | null>(
     null,
   );
-  const [possibleMoves, setPossibleMoves] = useState<ChessPosition[]>([]);
+  const [possibleMoves, setPossibleMoves] = useState<ChessMoveHint[]>([]);
   const [promotionSquare, setPromotionSquare] = useState<ChessPosition | null>(
     null,
   );
@@ -60,217 +63,10 @@ export default function ChessGamePage() {
   // Use ref to hold game client for cleanup functions
   const gameClientRef = useRef<ChessGameClient | null>(null);
 
-  // Calculate possible moves for a piece (simplified for frontend display)
-  const calculatePossibleMoves = (piece, position, board) => {
-    if (!piece || piece.type === ChessPieceType.Empty) return [];
-
-    switch (piece.type) {
-      case ChessPieceType.Pawn:
-        return calculatePawnMoves(piece, position, board);
-      case ChessPieceType.Rook:
-        return calculateRookMoves(piece, position, board);
-      case ChessPieceType.Knight:
-        return calculateKnightMoves(piece, position, board);
-      case ChessPieceType.Bishop:
-        return calculateBishopMoves(piece, position, board);
-      case ChessPieceType.Queen:
-        return calculateQueenMoves(piece, position, board);
-      case ChessPieceType.King:
-        return calculateKingMoves(piece, position, board);
-      default:
-        return [];
-    }
-  };
-
-  // Calculate pawn moves
-  const calculatePawnMoves = (piece, position, board) => {
-    const moves: ChessPosition[] = [];
-    const direction = piece.color === ChessColor.White ? -1 : 1;
-    const startRow = piece.color === ChessColor.White ? 6 : 1;
-
-    // Forward move
-    const oneSquareForward = {
-      row: position.row + direction,
-      col: position.col,
-    };
-    if (
-      isValidChessPosition(oneSquareForward) &&
-      board[oneSquareForward.row][oneSquareForward.col].type ===
-        ChessPieceType.Empty
-    ) {
-      moves.push(oneSquareForward);
-
-      // Double move from starting position
-      if (position.row === startRow) {
-        const twoSquaresForward = {
-          row: position.row + 2 * direction,
-          col: position.col,
-        };
-        if (
-          isValidChessPosition(twoSquaresForward) &&
-          board[twoSquaresForward.row][twoSquaresForward.col].type ===
-            ChessPieceType.Empty
-        ) {
-          moves.push(twoSquaresForward);
-        }
-      }
-    }
-
-    // Diagonal captures
-    for (const colOffset of [-1, 1]) {
-      const diagonalPos = {
-        row: position.row + direction,
-        col: position.col + colOffset,
-      };
-      if (isValidChessPosition(diagonalPos)) {
-        const targetPiece = board[diagonalPos.row][diagonalPos.col];
-        if (
-          targetPiece.type !== ChessPieceType.Empty &&
-          targetPiece.color !== piece.color
-        ) {
-          moves.push(diagonalPos);
-        }
-      }
-    }
-
-    return moves;
-  };
-
-  // Calculate rook moves
-  const calculateRookMoves = (piece, position, board) => {
-    const moves: ChessPosition[] = [];
-    const directions = [
-      [0, 1],
-      [0, -1],
-      [1, 0],
-      [-1, 0],
-    ];
-
-    for (const [dRow, dCol] of directions) {
-      for (let i = 1; i < BOARD_SIZE; i++) {
-        // Continue until board edge or blocked
-        const newPos = {
-          row: position.row + dRow * i,
-          col: position.col + dCol * i,
-        };
-        if (!isValidChessPosition(newPos)) break;
-
-        const targetPiece = board[newPos.row][newPos.col];
-        if (targetPiece.type === ChessPieceType.Empty) {
-          moves.push(newPos);
-        } else {
-          if (targetPiece.color !== piece.color) {
-            moves.push(newPos);
-          }
-          break;
-        }
-      }
-    }
-
-    return moves;
-  };
-
-  // Calculate knight moves
-  const calculateKnightMoves = (piece, position, board) => {
-    const moves: ChessPosition[] = [];
-    const knightMoves = [
-      [-2, -1],
-      [-2, 1],
-      [-1, -2],
-      [-1, 2],
-      [1, -2],
-      [1, 2],
-      [2, -1],
-      [2, 1],
-    ];
-
-    for (const [dRow, dCol] of knightMoves) {
-      const newPos = { row: position.row + dRow, col: position.col + dCol };
-      if (isValidChessPosition(newPos)) {
-        const targetPiece = board[newPos.row][newPos.col];
-        if (
-          targetPiece.type === ChessPieceType.Empty ||
-          targetPiece.color !== piece.color
-        ) {
-          moves.push(newPos);
-        }
-      }
-    }
-
-    return moves;
-  };
-
-  // Calculate bishop moves
-  const calculateBishopMoves = (piece, position, board) => {
-    const moves: ChessPosition[] = [];
-    const directions = [
-      [1, 1],
-      [1, -1],
-      [-1, 1],
-      [-1, -1],
-    ];
-
-    for (const [dRow, dCol] of directions) {
-      for (let i = 1; i < BOARD_SIZE; i++) {
-        // Continue until board edge or blocked
-        const newPos = {
-          row: position.row + dRow * i,
-          col: position.col + dCol * i,
-        };
-        if (!isValidChessPosition(newPos)) break;
-
-        const targetPiece = board[newPos.row][newPos.col];
-        if (targetPiece.type === ChessPieceType.Empty) {
-          moves.push(newPos);
-        } else {
-          if (targetPiece.color !== piece.color) {
-            moves.push(newPos);
-          }
-          break;
-        }
-      }
-    }
-
-    return moves;
-  };
-
-  // Calculate queen moves (combination of rook and bishop)
-  const calculateQueenMoves = (piece, position, board) => {
-    return [
-      ...calculateRookMoves(piece, position, board),
-      ...calculateBishopMoves(piece, position, board),
-    ];
-  };
-
-  // Calculate king moves
-  const calculateKingMoves = (piece, position, board) => {
-    const moves: ChessPosition[] = [];
-    const directions = [
-      [-1, -1],
-      [-1, 0],
-      [-1, 1],
-      [0, -1],
-      [0, 1],
-      [1, -1],
-      [1, 0],
-      [1, 1],
-    ];
-
-    for (const [dRow, dCol] of directions) {
-      const newPos = { row: position.row + dRow, col: position.col + dCol };
-      if (isValidChessPosition(newPos)) {
-        const targetPiece = board[newPos.row][newPos.col];
-        if (
-          targetPiece.type === ChessPieceType.Empty ||
-          targetPiece.color !== piece.color
-        ) {
-          moves.push(newPos);
-        }
-      }
-    }
-
-    return moves;
-  };
+  const checkSquare = useMemo(() => {
+    if (!gameState?.check || gameState.status !== "playing") return null;
+    return findKingSquareForSide(gameState, gameState.currentPlayer);
+  }, [gameState]);
 
   // Generate consistent player info
   useEffect(() => {
@@ -423,13 +219,9 @@ export default function ChessGamePage() {
           currentPlayer.color === gameState.currentPlayer
         ) {
           setSelectedSquare(clickedPos);
-          // Calculate possible moves based on piece type
-          const moves = calculatePossibleMoves(
-            clickedPiece,
-            clickedPos,
-            gameState.board,
+          setPossibleMoves(
+            getLegalMovesForSquare(gameState, clickedPos.row, clickedPos.col),
           );
-          setPossibleMoves(moves);
         }
         return;
       }
@@ -448,13 +240,9 @@ export default function ChessGamePage() {
         clickedPiece.color === currentPlayer.color
       ) {
         setSelectedSquare(clickedPos);
-        // Calculate possible moves based on piece type
-        const moves = calculatePossibleMoves(
-          clickedPiece,
-          clickedPos,
-          gameState.board,
+        setPossibleMoves(
+          getLegalMovesForSquare(gameState, clickedPos.row, clickedPos.col),
         );
-        setPossibleMoves(moves);
         return;
       }
 
@@ -651,6 +439,7 @@ export default function ChessGamePage() {
               isSidebarOpen={isSidebarOpen}
               showGrid={showGrid}
               currentPlayerColor={currentPlayer?.color as any}
+              checkSquare={checkSquare}
             />
           </div>
 

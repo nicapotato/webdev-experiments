@@ -717,6 +717,16 @@ export default function CheckersGamePage() {
                     }}
                   >
                     GAME OVER!
+                    {gameState.winner ? (
+                      <span className="block mt-1">
+                        {gameState.winner === "red"
+                          ? "RED"
+                          : gameState.winner === "black"
+                            ? "BLACK"
+                            : gameState.winner}{" "}
+                        WINS
+                      </span>
+                    ) : null}
                   </div>
                 )}
                 {gameState?.mustCapture && (
