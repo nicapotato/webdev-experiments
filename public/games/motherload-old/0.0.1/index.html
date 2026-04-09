@@ -1,0 +1,45 @@
+<!doctype html>
+<head>
+  <title>Motherload</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body onload="onLoadPage()">
+  <div id="game-container">
+    <div id="title-bar">
+      <!-- <h1>Motherload</h1> -->
+    </div>
+    <div id="player-stats">
+      <div class="stats-panel">
+        <div class="level-container">
+          <div class="level-display">
+            <!-- <img id="level-icon" src="assets/icons16x16.png" alt="Level"> -->
+            <!-- <span id="level">Level: 1</span> -->
+            <h3>Level: 1</h3>
+          </div>
+        </div>
+        <div class="bars-container">
+          <div class="bar-wrapper">
+            <div class="stat-label">Fuel</div>
+            <div id="fuel-bar">
+              <div id="fuel-fill"></div>
+              <div class="bar-text">100/100</div>
+            </div>
+          </div>
+          <div class="bar-wrapper">
+            <div class="stat-label">Money</div>
+            <div id="money-bar">
+              <div id="money-fill"></div>
+              <div class="bar-text">$0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <canvas id="game-canvas"></canvas>
+    <div id="shop-panel" class="hidden">
+      <h2>Shop</h2>
+      <div id="shop-items"></div>
+    </div>
+  </div>
+  <script src="motherload-game.js"></script>
+</body>
