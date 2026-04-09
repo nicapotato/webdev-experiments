@@ -1,5 +1,5 @@
-import { u as se, d as ae, r as x, g as ne, e as le, j as e, t as N } from "./index-CW6bEkcZ.js";
-import { C as ce } from "./ChessBoardMultiplayer-Nyx8I4V0.js";
+import { u as se, d as ae, r as x, g as ne, e as le, j as e, t as N } from "./index-Cyo_F1kd.js";
+import { C as ce } from "./ChessBoardMultiplayer-Dg9aZ6Hn.js";
 import { b as k, C as U } from "./chess-game-multiplayer-DB5exR2Z.js";
 import { p as F, C as u, b as Y, B as j, c as ie, a as de } from "./checkers-game-multiplayer-CFO-YGq1.js";
 import { g as xe } from "./player-utils-sDKa8flh.js";

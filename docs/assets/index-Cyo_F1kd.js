@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/SnakeSinglePlayerPage-CzkU2yMy.js","assets/button-mBHtT65A.js","assets/play-CYqHTcwy.js","assets/grid-3x3-B6NevLXf.js","assets/snake-game-multiplayer-COxn6obF.js","assets/gin-DHzzR3IR.js","assets/TypingPage-EKX4Agbn.js","assets/page-C8SGc8lg.js","assets/chess-game-multiplayer-DB5exR2Z.js","assets/checkers-game-multiplayer-CFO-YGq1.js","assets/fighter-game-multiplayer-C74Y-CKK.js","assets/users-Bs7zSTXt.js","assets/page-ANPIESSo.js","assets/player-utils-sDKa8flh.js","assets/wifi-Bjk2-FTH.js","assets/page-CUED0ldc.js","assets/ChessBoardMultiplayer-Nyx8I4V0.js","assets/page-DHP03_6T.js","assets/page-yAishOyw.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/SnakeSinglePlayerPage-B3bk5GW6.js","assets/button-DEm5cEaQ.js","assets/play-DgzCMp61.js","assets/grid-3x3-CyhlQYng.js","assets/snake-game-multiplayer-COxn6obF.js","assets/gin-DHzzR3IR.js","assets/TypingPage-e6cBSfQ7.js","assets/page-CVXPpEuL.js","assets/chess-game-multiplayer-DB5exR2Z.js","assets/checkers-game-multiplayer-CFO-YGq1.js","assets/fighter-game-multiplayer-CSJI2MQX.js","assets/users-BVSUSNhu.js","assets/page-C5KCGQxk.js","assets/player-utils-sDKa8flh.js","assets/wifi-Cpkg8YYW.js","assets/page-BN26O1Ua.js","assets/ChessBoardMultiplayer-Dg9aZ6Hn.js","assets/page-DYMXoWE4.js","assets/page-Cip4vD9G.js"])))=>i.map(i=>d[i]);
 let $1, H, K1, Nl, id, mb, ty, mv, tb, J1, eb, k1, E, b, yb, u0, hb;
 let __tla = (async () => {
   function N0(t, e) {
@@ -11399,7 +11399,7 @@ Please change the parent <Route path="${R}"> to <Route path="${R === "/" ? "*" :
     },
     {
       id: "minesweeper",
-      title: "MindSweeper",
+      title: "Minesweeper",
       kind: "iframe",
       href: "/games/minesweeper/index.html"
     },
@@ -13123,12 +13123,12 @@ Please change the parent <Route path="${R}"> to <Route path="${R === "/" ? "*" :
         })
       ]
     });
-  }, ab = b.lazy(() => Nl(() => import("./page-DGw-Qtu7.js").then(async (m) => {
+  }, ab = b.lazy(() => Nl(() => import("./page-DORG_XLs.js").then(async (m) => {
     await m.__tla;
     return m;
-  }), [])), nb = b.lazy(() => Nl(() => import("./SnakeSinglePlayerPage-CzkU2yMy.js"), __vite__mapDeps([0,1,2,3,4,5])).then((t) => ({
+  }), [])), nb = b.lazy(() => Nl(() => import("./SnakeSinglePlayerPage-B3bk5GW6.js"), __vite__mapDeps([0,1,2,3,4,5])).then((t) => ({
     default: t.default
-  }))), ub = b.lazy(() => Nl(() => import("./TypingPage-EKX4Agbn.js"), __vite__mapDeps([6,1]))), ib = b.lazy(() => Nl(() => import("./page-C8SGc8lg.js"), __vite__mapDeps([7,1,2,3,4,5,8,9,10,11]))), cb = b.lazy(() => Nl(() => import("./page-ANPIESSo.js"), __vite__mapDeps([12,1,4,5,13,3,11,14]))), sb = b.lazy(() => Nl(() => import("./page-CUED0ldc.js"), __vite__mapDeps([15,16,8,5,13]))), rb = b.lazy(() => Nl(() => import("./page-DHP03_6T.js"), __vite__mapDeps([17,16,8,5,9,13]))), ob = b.lazy(() => Nl(() => import("./page-yAishOyw.js"), __vite__mapDeps([18,1,10,3,5,13,14,11])));
+  }))), ub = b.lazy(() => Nl(() => import("./TypingPage-e6cBSfQ7.js"), __vite__mapDeps([6,1]))), ib = b.lazy(() => Nl(() => import("./page-CVXPpEuL.js"), __vite__mapDeps([7,1,2,3,4,5,8,9,10,11]))), cb = b.lazy(() => Nl(() => import("./page-C5KCGQxk.js"), __vite__mapDeps([12,1,4,5,13,3,11,14]))), sb = b.lazy(() => Nl(() => import("./page-BN26O1Ua.js"), __vite__mapDeps([15,16,8,5,13]))), rb = b.lazy(() => Nl(() => import("./page-DYMXoWE4.js"), __vite__mapDeps([17,16,8,5,9,13]))), ob = b.lazy(() => Nl(() => import("./page-Cip4vD9G.js"), __vite__mapDeps([18,1,10,3,5,13,14,11])));
   function fb() {
     return E.jsxs(f1, {
       attribute: "class",

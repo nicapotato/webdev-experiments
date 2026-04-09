@@ -60,7 +60,7 @@ export const HUB_ENTRIES: HubEntry[] = [
   },
   {
     id: 'minesweeper',
-    title: 'MindSweeper',
+    title: 'Minesweeper',
     kind: 'iframe',
     href: '/games/minesweeper/index.html',
   },
