@@ -18,6 +18,8 @@ const ChessBoard = ({
   singleLegalMoveHighlight = false,
   /** During multi-jump: keep orange emphasis on the only movable checker (even when selected). */
   comboContinuePiece = null,
+  /** Chess: square of king in check (red highlight). */
+  checkSquare = null,
 }) => {
   const [tileSize, setTileSize] = useState(64);
 
@@ -104,6 +106,11 @@ const ChessBoard = ({
     comboContinuePiece.row === row &&
     comboContinuePiece.col === col;
 
+  const isCheckSquare = (row, col) =>
+    checkSquare &&
+    checkSquare.row === row &&
+    checkSquare.col === col;
+
   const getSquareClasses = (row, col) => {
     const isLight = (row + col) % 2 === 0;
     const piece = board[row][col];
@@ -122,7 +129,10 @@ const ChessBoard = ({
     }
 
     if (selected) {
-      if (isComboContinueSquare(row, col)) {
+      if (isCheckSquare(row, col)) {
+        classes +=
+          "ring-4 ring-red-500 ring-inset shadow-[inset_0_0_14px_rgba(239,68,68,0.55)] ";
+      } else if (isComboContinueSquare(row, col)) {
         classes +=
           "ring-4 ring-orange-400 ring-inset shadow-[inset_0_0_12px_rgba(251,146,60,0.45)] ";
       } else {
@@ -140,6 +150,9 @@ const ChessBoard = ({
       }
     } else if (mandatory && piece && !selected) {
       classes += "ring-2 ring-orange-400 ring-inset ";
+    } else if (isCheckSquare(row, col) && piece && !selected) {
+      classes +=
+        "ring-4 ring-red-500 ring-inset shadow-[inset_0_0_14px_rgba(239,68,68,0.45)] ";
     }
 
     return classes;

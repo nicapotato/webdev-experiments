@@ -1,5 +1,13 @@
 import React, { useState } from "react";
 import ChessBoard from "./ChessBoard";
+import {
+  applyMove,
+  cloneBoard,
+  defaultCastlingRights,
+  findKingSquare,
+  isKingInCheck,
+  isSquareAttacked,
+} from "./chess-rules";
 
 const ChessPage = () => {
   const [gameState, setGameState] = useState({
@@ -11,11 +19,21 @@ const ChessPage = () => {
     capturedPieces: { white: [], black: [] },
     moveHistory: [],
     pendingPromotion: null, // { row, col, color }
+    castlingRights: defaultCastlingRights(),
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const SIDE_IMAGE_WIDTH = 360; // px (approx width reservation for each tall image)
   const SIDE_IMAGE_GAP = 24; // px total gaps between images and board
   const TOTAL_SIDE_IMAGES_WIDTH = SIDE_IMAGE_WIDTH * 2 + SIDE_IMAGE_GAP * 2;
+
+  const sidePortraitStyle = (isActive) => ({
+    height: `calc(100vh${isSidebarOpen ? "" : " - 10px"})`,
+    width: SIDE_IMAGE_WIDTH,
+    filter: isActive ? "brightness(1.2)" : "brightness(0.5)",
+    boxShadow: isActive
+      ? "0 0 0 2px #000, inset 0 0 0 1px #000, 0 0 28px rgba(250, 204, 21, 0.55)"
+      : "0 0 0 2px #000, inset 0 0 0 1px #000",
+  });
 
   function initializeBoard() {
     const board = Array(8)
@@ -49,6 +67,13 @@ const ChessPage = () => {
   }
 
   const handleSquareClick = (row, col) => {
+    if (
+      gameState.gameStatus === "checkmate" ||
+      gameState.gameStatus === "stalemate"
+    ) {
+      return;
+    }
+
     const clickedPiece = gameState.board[row][col];
     const selectedPiece = gameState.selectedSquare
       ? gameState.board[gameState.selectedSquare.row][
@@ -56,14 +81,17 @@ const ChessPage = () => {
         ]
       : null;
 
-    // If no piece is selected and clicked square is empty, do nothing
     if (!gameState.selectedSquare && !clickedPiece) {
       return;
     }
 
-    // If clicking on own piece, select it
     if (clickedPiece && clickedPiece.color === gameState.currentPlayer) {
-      const moves = getPossibleMoves(row, col, gameState.board);
+      const moves = getLegalMoves(
+        row,
+        col,
+        gameState.board,
+        gameState.castlingRights,
+      );
       setGameState((prev) => ({
         ...prev,
         selectedSquare: { row, col },
@@ -72,62 +100,50 @@ const ChessPage = () => {
       return;
     }
 
-    // If a piece is selected and clicking on a valid move
     if (
       gameState.selectedSquare &&
       gameState.possibleMoves.some(
         (move) => move.row === row && move.col === col,
       )
     ) {
-      // Make the move
-      const newBoard = gameState.board.map((row) => [...row]);
-      const capturedPiece = newBoard[row][col];
+      const from = gameState.selectedSquare;
+      const { newBoard, captured: capturedPiece, rights: newRights } =
+        applyMove(gameState.board, from, { row, col }, gameState.castlingRights);
 
-      // Move piece
-      newBoard[row][col] = selectedPiece;
-      newBoard[gameState.selectedSquare.row][gameState.selectedSquare.col] =
-        null;
-
-      // Check for pawn promotion
       if (
         selectedPiece.type === "pawn" &&
         ((selectedPiece.color === "white" && row === 0) ||
           (selectedPiece.color === "black" && row === 7))
       ) {
-        // Set pending promotion
         setGameState((prev) => ({
           ...prev,
           board: newBoard,
+          castlingRights: newRights,
           selectedSquare: null,
           possibleMoves: [],
-          pendingPromotion: { row, col, color: selectedPiece.color },
+          pendingPromotion: {
+            row,
+            col,
+            color: selectedPiece.color,
+            from,
+          },
         }));
         return;
       }
 
-      // Update captured pieces if any
       const newCapturedPieces = { ...gameState.capturedPieces };
       if (capturedPiece) {
         newCapturedPieces[capturedPiece.color].push(capturedPiece);
       }
 
-      // Check for check/checkmate
-      const isInCheck = isKingInCheck(
-        gameState.currentPlayer === "white" ? "black" : "white",
-        newBoard,
-      );
-      const hasValidMoves = hasAnyValidMoves(
-        gameState.currentPlayer === "white" ? "black" : "white",
-        newBoard,
-      );
+      const nextPlayer =
+        gameState.currentPlayer === "white" ? "black" : "white";
+      const isInCheck = isKingInCheck(nextPlayer, newBoard);
+      const hasValidMoves = hasAnyValidMoves(nextPlayer, newBoard, newRights);
 
       let newGameStatus = "playing";
       if (isInCheck) {
-        if (!hasValidMoves) {
-          newGameStatus = "checkmate";
-        } else {
-          newGameStatus = "check";
-        }
+        newGameStatus = !hasValidMoves ? "checkmate" : "check";
       } else if (!hasValidMoves) {
         newGameStatus = "stalemate";
       }
@@ -135,6 +151,7 @@ const ChessPage = () => {
       setGameState((prev) => ({
         ...prev,
         board: newBoard,
+        castlingRights: newRights,
         currentPlayer: prev.currentPlayer === "white" ? "black" : "white",
         selectedSquare: null,
         possibleMoves: [],
@@ -153,7 +170,6 @@ const ChessPage = () => {
       return;
     }
 
-    // If clicking elsewhere, deselect
     setGameState((prev) => ({
       ...prev,
       selectedSquare: null,
@@ -161,7 +177,7 @@ const ChessPage = () => {
     }));
   };
 
-  const getPossibleMoves = (row, col, board) => {
+  const getPseudoLegalMoves = (row, col, board, castlingRights) => {
     const piece = board[row][col];
     if (!piece) return [];
 
@@ -184,11 +200,37 @@ const ChessPage = () => {
         moves.push(...getQueenMoves(row, col, piece.color, board));
         break;
       case "king":
-        moves.push(...getKingMoves(row, col, piece.color, board));
+        moves.push(
+          ...getKingMoves(row, col, piece.color, board, castlingRights),
+        );
         break;
     }
 
     return moves;
+  };
+
+  const getLegalMoves = (row, col, board, castlingRights) => {
+    const piece = board[row][col];
+    if (!piece) return [];
+    const pseudo = getPseudoLegalMoves(row, col, board, castlingRights);
+    const color = piece.color;
+    return pseudo.filter((to) => {
+      const { newBoard } = applyMove(
+        board,
+        { row, col },
+        to,
+        castlingRights,
+      );
+      let testBoard = newBoard;
+      if (
+        piece.type === "pawn" &&
+        (to.row === 0 || to.row === 7)
+      ) {
+        testBoard = cloneBoard(newBoard);
+        testBoard[to.row][to.col] = { type: "queen", color: piece.color };
+      }
+      return !isKingInCheck(color, testBoard);
+    });
   };
 
   const getPawnMoves = (row, col, color, board) => {
@@ -326,7 +368,7 @@ const ChessPage = () => {
     ];
   };
 
-  const getKingMoves = (row, col, color, board) => {
+  const getKingMoves = (row, col, color, board, castlingRights) => {
     const moves = [];
     const directions = [
       [-1, -1],
@@ -351,48 +393,83 @@ const ChessPage = () => {
       }
     }
 
+    const opp = color === "white" ? "black" : "white";
+    if (color === "white" && row === 7 && col === 4) {
+      if (
+        castlingRights.white.kingSide &&
+        board[7][7]?.type === "rook" &&
+        board[7][7]?.color === "white" &&
+        !board[7][5] &&
+        !board[7][6]
+      ) {
+        if (
+          !isKingInCheck("white", board) &&
+          !isSquareAttacked(board, 7, 5, opp) &&
+          !isSquareAttacked(board, 7, 6, opp)
+        ) {
+          moves.push({ row: 7, col: 6 });
+        }
+      }
+      if (
+        castlingRights.white.queenSide &&
+        board[7][0]?.type === "rook" &&
+        board[7][0]?.color === "white" &&
+        !board[7][1] &&
+        !board[7][2] &&
+        !board[7][3]
+      ) {
+        if (
+          !isKingInCheck("white", board) &&
+          !isSquareAttacked(board, 7, 3, opp) &&
+          !isSquareAttacked(board, 7, 2, opp)
+        ) {
+          moves.push({ row: 7, col: 2 });
+        }
+      }
+    }
+    if (color === "black" && row === 0 && col === 4) {
+      if (
+        castlingRights.black.kingSide &&
+        board[0][7]?.type === "rook" &&
+        board[0][7]?.color === "black" &&
+        !board[0][5] &&
+        !board[0][6]
+      ) {
+        if (
+          !isKingInCheck("black", board) &&
+          !isSquareAttacked(board, 0, 5, opp) &&
+          !isSquareAttacked(board, 0, 6, opp)
+        ) {
+          moves.push({ row: 0, col: 6 });
+        }
+      }
+      if (
+        castlingRights.black.queenSide &&
+        board[0][0]?.type === "rook" &&
+        board[0][0]?.color === "black" &&
+        !board[0][1] &&
+        !board[0][2] &&
+        !board[0][3]
+      ) {
+        if (
+          !isKingInCheck("black", board) &&
+          !isSquareAttacked(board, 0, 3, opp) &&
+          !isSquareAttacked(board, 0, 2, opp)
+        ) {
+          moves.push({ row: 0, col: 2 });
+        }
+      }
+    }
+
     return moves;
   };
 
-  const isKingInCheck = (color, board) => {
-    // Find king position
-    let kingRow, kingCol;
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        const piece = board[row][col];
-        if (piece && piece.type === "king" && piece.color === color) {
-          kingRow = row;
-          kingCol = col;
-          break;
-        }
-      }
-    }
-
-    // Check if any opponent piece can attack the king
-    const opponentColor = color === "white" ? "black" : "white";
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        const piece = board[row][col];
-        if (piece && piece.color === opponentColor) {
-          const moves = getPossibleMoves(row, col, board);
-          if (
-            moves.some((move) => move.row === kingRow && move.col === kingCol)
-          ) {
-            return true;
-          }
-        }
-      }
-    }
-
-    return false;
-  };
-
-  const hasAnyValidMoves = (color, board) => {
+  const hasAnyValidMoves = (color, board, castlingRights) => {
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         const piece = board[row][col];
         if (piece && piece.color === color) {
-          const moves = getPossibleMoves(row, col, board);
+          const moves = getLegalMoves(row, col, board, castlingRights);
           if (moves.length > 0) {
             return true;
           }
@@ -405,27 +482,21 @@ const ChessPage = () => {
   const promotePawn = (pieceType) => {
     if (!gameState.pendingPromotion) return;
 
-    const { row, col, color } = gameState.pendingPromotion;
+    const { row, col, color, from } = gameState.pendingPromotion;
     const newBoard = gameState.board.map((r) => [...r]);
     newBoard[row][col] = { type: pieceType, color };
 
-    // Check for check/checkmate after promotion
-    const isInCheck = isKingInCheck(
-      color === "white" ? "black" : "white",
-      newBoard,
-    );
+    const nextPlayer = color === "white" ? "black" : "white";
+    const isInCheck = isKingInCheck(nextPlayer, newBoard);
     const hasValidMoves = hasAnyValidMoves(
-      color === "white" ? "black" : "white",
+      nextPlayer,
       newBoard,
+      gameState.castlingRights,
     );
 
     let newGameStatus = "playing";
     if (isInCheck) {
-      if (!hasValidMoves) {
-        newGameStatus = "checkmate";
-      } else {
-        newGameStatus = "check";
-      }
+      newGameStatus = !hasValidMoves ? "checkmate" : "check";
     } else if (!hasValidMoves) {
       newGameStatus = "stalemate";
     }
@@ -439,7 +510,7 @@ const ChessPage = () => {
       moveHistory: [
         ...prev.moveHistory,
         {
-          from: prev.selectedSquare,
+          from,
           to: { row, col },
           piece: { type: pieceType, color },
           captured: null,
@@ -459,8 +530,15 @@ const ChessPage = () => {
       capturedPieces: { white: [], black: [] },
       moveHistory: [],
       pendingPromotion: null,
+      castlingRights: defaultCastlingRights(),
     });
   };
+
+  const checkSquare =
+    gameState.gameStatus === "check" ||
+    gameState.gameStatus === "checkmate"
+      ? findKingSquare(gameState.board, gameState.currentPlayer)
+      : null;
 
   return (
     <div
@@ -506,12 +584,8 @@ const ChessPage = () => {
           <img
             src="/games/chess/dark-cat.jpg"
             alt="Black player"
-            className={`object-cover object-center border-4 ${gameState.currentPlayer === "black" ? "border-yellow-400" : "border-gray-700"}`}
-            style={{
-              height: `calc(100vh${isSidebarOpen ? "" : " - 10px"})`,
-              width: SIDE_IMAGE_WIDTH,
-              boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
-            }}
+            className={`object-cover object-center border-4 transition-[filter,box-shadow] duration-200 ${gameState.currentPlayer === "black" ? "border-yellow-300" : "border-gray-700"}`}
+            style={sidePortraitStyle(gameState.currentPlayer === "black")}
           />
 
           {/* Chess Board */}
@@ -523,6 +597,7 @@ const ChessPage = () => {
               onSquareClick={handleSquareClick}
               sideImagesWidth={TOTAL_SIDE_IMAGES_WIDTH}
               isSidebarOpen={isSidebarOpen}
+              checkSquare={checkSquare}
             />
           </div>
 
@@ -530,12 +605,8 @@ const ChessPage = () => {
           <img
             src="/games/chess/light-cat.jpg"
             alt="White player"
-            className={`object-cover object-center border-4 ${gameState.currentPlayer === "white" ? "border-yellow-400" : "border-gray-700"}`}
-            style={{
-              height: `calc(100vh${isSidebarOpen ? "" : " - 10px"})`,
-              width: SIDE_IMAGE_WIDTH,
-              boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
-            }}
+            className={`object-cover object-center border-4 transition-[filter,box-shadow] duration-200 ${gameState.currentPlayer === "white" ? "border-yellow-300" : "border-gray-700"}`}
+            style={sidePortraitStyle(gameState.currentPlayer === "white")}
           />
         </div>
 
