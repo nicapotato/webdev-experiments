@@ -4,35 +4,41 @@ import {
   ChessColor,
   positionsEqual,
 } from "../../chess/chess-game-multiplayer";
+import {
+  SPRITE_SIZE_PX,
+  SHEET_COLS,
+  SHEET_ROWS,
+  CHECKER_KING_SPRITE_ROW,
+} from "@/games/checkers/checkers-sprite";
 
 const ChessBoardMultiplayer = ({
   board,
   selectedSquare,
-  possibleMoves,
+  possibleMoves = [],
   onSquareClick,
   sideImagesWidth = 0,
   isSidebarOpen = true,
   showGrid = false,
   currentPlayerColor = null,
+  forcedCapture = false,
+  mandatoryPieceSquares = [],
+  singleLegalMoveHighlight = false,
+  comboContinuePiece = null,
 }) => {
   const [tileSize, setTileSize] = useState(64);
 
-  // Calculate dynamic tile size based on viewport dimensions
   const getDynamicTileSize = () => {
     if (typeof window !== "undefined") {
-      // Use almost the full viewport height for a tall board
       const availableHeight = window.innerHeight * 0.98;
-      // Subtract sidebar only if it is open, and any side images width provided by parent
       const reservedSidebar = isSidebarOpen ? 384 : 0;
       const reservedSides = sideImagesWidth || 0;
       const availableWidth =
         (window.innerWidth - reservedSidebar - reservedSides) * 0.98;
 
-      // Use the smaller of the two to maintain square proportions
       const maxSize = Math.min(availableHeight, availableWidth);
       return Math.floor(maxSize / 8);
     }
-    return 64; // fallback
+    return 64;
   };
 
   useEffect(() => {
@@ -46,13 +52,9 @@ const ChessBoardMultiplayer = ({
     return () => window.removeEventListener("resize", updateTileSize);
   }, [isSidebarOpen, sideImagesWidth]);
 
-  const TILE_PX = tileSize;
-
   const getPieceStyles = (piece) => {
     if (!piece || piece.type === ChessPieceType.Empty) return {};
 
-    // Sprite sheet details
-    // 2 columns (0:white, 1:black), 6 rows: 0 pawn, 1 knight, 2 queen, 3 king, 4 bishop, 5 rook
     const rowIndex = {
       [ChessPieceType.Pawn]: 0,
       [ChessPieceType.Knight]: 1,
@@ -62,17 +64,19 @@ const ChessBoardMultiplayer = ({
       [ChessPieceType.Rook]: 5,
     };
 
-    const SPRITE_SIZE = 16; // px per sprite
-    const SHEET_COLS = 2;
-    const SHEET_ROWS = 8;
-    const SHEET_WIDTH = SPRITE_SIZE * SHEET_COLS; // 32px
-    const SHEET_HEIGHT = SPRITE_SIZE * SHEET_ROWS; // 96px
+    const SPRITE_SIZE = SPRITE_SIZE_PX;
+    const SHEET_WIDTH = SPRITE_SIZE * SHEET_COLS;
+    const SHEET_HEIGHT = SPRITE_SIZE * SHEET_ROWS;
 
     const SCALE = tileSize / SPRITE_SIZE;
 
     const colIndex = piece.color === ChessColor.White ? 0 : 1;
     const x = colIndex * SPRITE_SIZE;
-    const y = rowIndex[piece.type] * SPRITE_SIZE;
+    let row =
+      piece.type === ChessPieceType.Rook && piece.isKing
+        ? CHECKER_KING_SPRITE_ROW
+        : rowIndex[piece.type];
+    const y = row * SPRITE_SIZE;
 
     return {
       backgroundImage: "url(/games/chess/chess-cat.png)",
@@ -93,8 +97,29 @@ const ChessBoardMultiplayer = ({
     return possibleMoves.some((move) => positionsEqual(move, { row, col }));
   };
 
+  const getMoveMeta = (row, col) =>
+    possibleMoves.find((m) => positionsEqual(m, { row, col }));
+
+  const isMandatoryPiece = (row, col) =>
+    mandatoryPieceSquares.some((s) => positionsEqual(s, { row, col }));
+
+  const isComboContinueSquare = (row, col) =>
+    comboContinuePiece &&
+    comboContinuePiece.row === row &&
+    comboContinuePiece.col === col;
+
+  const isEmptySquare = (piece) =>
+    !piece || piece.type === ChessPieceType.Empty;
+
   const getSquareClasses = (row, col) => {
     const isLight = (row + col) % 2 === 0;
+    const piece = board[row]?.[col];
+    const isPossible = isPossibleMove(row, col);
+    const selected = isSquareSelected(row, col);
+    const moveMeta = getMoveMeta(row, col);
+    const isCaptureMove = isPossible && moveMeta?.isCapture === true;
+    const mandatory = isMandatoryPiece(row, col);
+
     let classes = `flex items-center justify-center cursor-pointer relative `;
 
     if (isLight) {
@@ -103,12 +128,25 @@ const ChessBoardMultiplayer = ({
       classes += "bg-gray-800 ";
     }
 
-    if (isSquareSelected(row, col)) {
-      classes += "ring-4 ring-blue-500 ring-inset ";
-    }
-
-    if (isPossibleMove(row, col)) {
-      classes += "ring-2 ring-green-400 ring-inset ";
+    if (selected) {
+      if (isComboContinueSquare(row, col)) {
+        classes +=
+          "ring-4 ring-orange-400 ring-inset shadow-[inset_0_0_12px_rgba(251,146,60,0.45)] ";
+      } else {
+        classes += "ring-4 ring-blue-500 ring-inset ";
+      }
+    } else if (isPossible) {
+      if (singleLegalMoveHighlight && possibleMoves.length === 1) {
+        classes +=
+          "ring-4 ring-amber-400 ring-inset shadow-[inset_0_0_12px_rgba(251,191,36,0.5)] animate-pulse ";
+      } else if (forcedCapture && isCaptureMove) {
+        classes +=
+          "ring-4 ring-amber-300 ring-inset shadow-[inset_0_0_10px_rgba(252,211,77,0.45)] animate-pulse ";
+      } else {
+        classes += "ring-2 ring-green-400 ring-inset ";
+      }
+    } else if (mandatory && piece && !isEmptySquare(piece) && !selected) {
+      classes += "ring-2 ring-orange-400 ring-inset ";
     }
 
     return classes;
@@ -122,6 +160,20 @@ const ChessBoardMultiplayer = ({
   const renderSquare = (row, col) => {
     const piece = board[row]?.[col];
     const isPossible = isPossibleMove(row, col);
+    const moveMeta = getMoveMeta(row, col);
+    const isCaptureMove = isPossible && moveMeta?.isCapture === true;
+
+    const dotClass =
+      singleLegalMoveHighlight && possibleMoves.length === 1
+        ? "w-6 h-6 bg-amber-400 rounded-full opacity-90 shadow-[0_0_8px_rgba(251,191,36,0.9)] animate-pulse"
+        : forcedCapture && isCaptureMove
+          ? "w-5 h-5 bg-amber-300 rounded-full opacity-85 shadow-[0_0_6px_rgba(252,211,77,0.85)]"
+          : "w-4 h-4 bg-green-500 rounded-full opacity-60";
+
+    const captureBorderClass =
+      forcedCapture && isCaptureMove
+        ? "border-4 border-amber-400 animate-pulse shadow-[inset_0_0_8px_rgba(251,191,36,0.5)]"
+        : "border-4 border-red-500";
 
     return (
       <div
@@ -130,7 +182,6 @@ const ChessBoardMultiplayer = ({
         style={getSquareStyles()}
         onClick={() => onSquareClick(row, col)}
       >
-        {/* Chess piece (fills entire tile) */}
         {piece && piece.type !== ChessPieceType.Empty && (
           <div
             className="absolute inset-0 z-10 select-none pointer-events-none"
@@ -138,19 +189,18 @@ const ChessBoardMultiplayer = ({
           />
         )}
 
-        {/* Possible move indicator */}
-        {isPossible && piece && piece.type === ChessPieceType.Empty && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-4 h-4 bg-green-500 rounded-full opacity-60"></div>
+        {isPossible && isEmptySquare(piece) && (
+          <div className="absolute inset-0 flex items-center justify-center z-[5]">
+            <div className={dotClass} />
           </div>
         )}
 
-        {/* Capture indicator */}
         {isPossible && piece && piece.type !== ChessPieceType.Empty && (
-          <div className="absolute inset-0 border-4 border-red-500 rounded pointer-events-none"></div>
+          <div
+            className={`absolute inset-0 rounded pointer-events-none z-[5] ${captureBorderClass}`}
+          />
         )}
 
-        {/* Grid coordinates (optional) */}
         {showGrid && (
           <div
             className="absolute bottom-0 right-0 text-xs text-gray-500 p-1"
@@ -181,8 +231,6 @@ const ChessBoardMultiplayer = ({
 
   const renderBoard = () => {
     const rows = [];
-    // If current player is black, render board from row 7 to row 0 (flipped)
-    // If current player is white or null, render from row 0 to row 7 (normal)
     const isFlipped = currentPlayerColor === ChessColor.Black;
 
     if (isFlipped) {

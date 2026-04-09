@@ -473,7 +473,7 @@ const ChessPage = () => {
         alt="chess sprites"
         className="hidden"
         width={32}
-        height={128}
+        height={144}
       />
 
       {/* Sidebar Toggle Button (always visible) */}

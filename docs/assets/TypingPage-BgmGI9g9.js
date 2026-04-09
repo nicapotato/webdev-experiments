@@ -1,5 +1,5 @@
-import { r as s, j as e } from "./index-CE6kdDhP.js";
-import { B as v } from "./button-DoKDxYAf.js";
+import { r as s, j as e } from "./index-CKwZm0UE.js";
+import { B as v } from "./button-Ch2qmtdg.js";
 const m = ["The quick brown fox jumps over the lazy dog. This pangram contains every letter of the alphabet at least once.", "Programming is the process of creating instructions that tell a computer how to perform a task.", "Artificial intelligence is intelligence demonstrated by machines, as opposed to natural intelligence."];
 function D() {
   const [i, w] = s.useState(""), [h, k] = s.useState(() => m[0]), [n, u] = s.useState(0), [S, d] = s.useState([]), [c, g] = s.useState(null), [p, f] = s.useState(false), y = s.useRef(null), a = s.useMemo(() => h, [h]), b = s.useCallback((t) => {

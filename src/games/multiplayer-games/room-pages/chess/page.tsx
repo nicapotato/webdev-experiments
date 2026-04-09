@@ -577,7 +577,7 @@ export default function ChessGamePage() {
         alt="chess sprites"
         className="hidden"
         width={32}
-        height={128}
+        height={144}
       />
 
       {/* Fixed positioned buttons */}

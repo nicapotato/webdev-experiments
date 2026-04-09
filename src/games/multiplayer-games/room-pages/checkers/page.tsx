@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -15,7 +15,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import ChessBoardMultiplayer from "../chess/ChessBoardMultiplayer";
-import { ChessColor } from "@/games/multiplayer-games/chess/chess-game-multiplayer";
+import {
+  ChessColor,
+  ChessPieceType,
+} from "@/games/multiplayer-games/chess/chess-game-multiplayer";
+import {
+  countTotalLegalMoves,
+  getMandatoryCapturePiecePositions,
+} from "@/games/checkers/checkers-legal-stats";
 import {
   CheckersGameClient,
   CheckersPosition,
@@ -23,6 +30,7 @@ import {
   CheckersColor,
   type CheckersGameState,
   type CheckersPlayer,
+  type CheckersPiece,
   generateCheckersRoomId,
   getCheckersColorName,
   positionsEqual,
@@ -58,10 +66,11 @@ export default function CheckersGamePage() {
   // Use ref to hold game client for cleanup functions
   const gameClientRef = useRef<CheckersGameClient | null>(null);
 
-  // Calculate possible moves for a piece (simplified for frontend display)
-  const calculatePossibleMoves = (piece, position, board) => {
-    if (!piece || piece.type !== "checker") return [];
-
+  const getCaptureMovesForPiece = (
+    piece: CheckersPiece,
+    position: CheckersPosition,
+    board: (CheckersPiece | null)[][],
+  ): CheckersPosition[] => {
     const moves: CheckersPosition[] = [];
     const directions = piece.isKing
       ? [
@@ -80,7 +89,6 @@ export default function CheckersGamePage() {
             [-1, 1],
           ];
 
-    // First check for captures (forced in checkers)
     for (const [dRow, dCol] of directions) {
       const jumpRow = position.row + 2 * dRow;
       const jumpCol = position.col + 2 * dCol;
@@ -101,21 +109,78 @@ export default function CheckersGamePage() {
       }
     }
 
-    // If no captures available, check for regular moves
-    if (moves.length === 0) {
-      for (const [dRow, dCol] of directions) {
-        const newRow = position.row + dRow;
-        const newCol = position.col + dCol;
+    return moves;
+  };
 
+  const hasAnyCaptureForPlayer = (
+    board: (CheckersPiece | null)[][],
+    color: CheckersColor,
+  ): boolean => {
+    for (let row = 0; row < BOARD_SIZE; row++) {
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        const p = board[row][col];
         if (
-          newRow >= 0 &&
-          newRow < BOARD_SIZE &&
-          newCol >= 0 &&
-          newCol < BOARD_SIZE &&
-          !board[newRow][newCol]
+          p &&
+          p.color === color &&
+          getCaptureMovesForPiece(p, { row, col }, board).length > 0
         ) {
-          moves.push({ row: newRow, col: newCol });
+          return true;
         }
+      }
+    }
+    return false;
+  };
+
+  // Calculate possible moves for a piece (simplified for frontend display)
+  const calculatePossibleMoves = (
+    piece: CheckersPiece,
+    position: CheckersPosition,
+    board: (CheckersPiece | null)[][],
+  ) => {
+    if (!piece || piece.type !== "checker") return [];
+
+    const captures = getCaptureMovesForPiece(piece, position, board);
+
+    const asCaptures = captures.map((m) => ({ ...m, isCapture: true }));
+
+    if (hasAnyCaptureForPlayer(board, piece.color)) {
+      return asCaptures;
+    }
+
+    if (captures.length > 0) {
+      return asCaptures;
+    }
+
+    const moves: CheckersPosition[] = [];
+    const directions = piece.isKing
+      ? [
+          [-1, -1],
+          [-1, 1],
+          [1, -1],
+          [1, 1],
+        ]
+      : piece.color === CheckersColor.Red
+        ? [
+            [1, -1],
+            [1, 1],
+          ]
+        : [
+            [-1, -1],
+            [-1, 1],
+          ];
+
+    for (const [dRow, dCol] of directions) {
+      const newRow = position.row + dRow;
+      const newCol = position.col + dCol;
+
+      if (
+        newRow >= 0 &&
+        newRow < BOARD_SIZE &&
+        newCol >= 0 &&
+        newCol < BOARD_SIZE &&
+        !board[newRow][newCol]
+      ) {
+        moves.push({ row: newRow, col: newCol });
       }
     }
 
@@ -363,6 +428,83 @@ export default function CheckersGamePage() {
     ],
   );
 
+  const checkersForcedUi = useMemo(() => {
+    if (!gameState || gameState.status !== "playing") {
+      return {
+        forcedCapture: false,
+        mandatoryPieceSquares: [] as CheckersPosition[],
+        singleLegalMoveHighlight: false,
+        comboContinuePiece: null as CheckersPosition | null,
+      };
+    }
+
+    if (gameState.captureSequence?.length) {
+      const last =
+        gameState.captureSequence[gameState.captureSequence.length - 1];
+      const only = { row: last.to.row, col: last.to.col };
+      return {
+        forcedCapture: true,
+        mandatoryPieceSquares: [only],
+        singleLegalMoveHighlight: possibleMoves.length === 1,
+        comboContinuePiece: only,
+      };
+    }
+
+    const board = gameState.board;
+    const cp = gameState.currentPlayer;
+
+    const forcedCapture = hasAnyCaptureForPlayer(board, cp);
+    const mandatoryPieceSquares = getMandatoryCapturePiecePositions(
+      board,
+      forcedCapture,
+      (p, r, c) => !!(p && p.color === cp),
+      (r, c, b) => {
+        const piece = b[r][c];
+        if (!piece) return [];
+        return getCaptureMovesForPiece(piece, { row: r, col: c }, b);
+      },
+    );
+
+    const totalLegal = countTotalLegalMoves(
+      board,
+      (p, r, c) => !!(p && p.color === cp),
+      (r, c, b) => {
+        const piece = b[r][c];
+        if (!piece) return [];
+        return calculatePossibleMoves(piece, { row: r, col: c }, b);
+      },
+    );
+
+    return {
+      forcedCapture,
+      mandatoryPieceSquares,
+      singleLegalMoveHighlight: totalLegal === 1,
+      comboContinuePiece: null as CheckersPosition | null,
+    };
+  }, [gameState, possibleMoves]);
+
+  const opponentColor =
+    currentPlayer?.color === CheckersColor.Red
+      ? CheckersColor.Black
+      : CheckersColor.Red;
+  const leftSideActive =
+    gameState != null &&
+    currentPlayer != null &&
+    gameState.currentPlayer === opponentColor;
+  const rightSideActive =
+    gameState != null &&
+    currentPlayer != null &&
+    gameState.currentPlayer === currentPlayer.color;
+
+  const sidePortraitStyle = (isActive: boolean) => ({
+    height: `calc(100vh${isSidebarOpen ? "" : " - 10px"})`,
+    width: SIDE_IMAGE_WIDTH,
+    filter: isActive ? "brightness(1.2)" : "brightness(0.5)",
+    boxShadow: isActive
+      ? "0 0 0 2px #000, inset 0 0 0 1px #000, 0 0 28px rgba(250, 204, 21, 0.55)"
+      : "0 0 0 2px #000, inset 0 0 0 1px #000",
+  });
+
   // Copy shareable link to clipboard
   const copyRoomId = async () => {
     try {
@@ -418,7 +560,7 @@ export default function CheckersGamePage() {
         alt="chess sprites"
         className="hidden"
         width={32}
-        height={128}
+        height={144}
       />
 
       {/* Fixed positioned buttons */}
@@ -473,12 +615,8 @@ export default function CheckersGamePage() {
                 ? "Black player"
                 : "Red player"
             }
-            className={`object-cover object-center border-4 ${gameState?.currentPlayer === (currentPlayer?.color === CheckersColor.Red ? CheckersColor.Black : CheckersColor.Red) ? "border-yellow-400" : "border-gray-700"}`}
-            style={{
-              height: `calc(100vh${isSidebarOpen ? "" : " - 10px"})`,
-              width: SIDE_IMAGE_WIDTH,
-              boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
-            }}
+            className={`object-cover object-center border-4 transition-[filter,box-shadow] duration-200 ${leftSideActive ? "border-yellow-300" : "border-gray-700"}`}
+            style={sidePortraitStyle(leftSideActive)}
           />
 
           {/* Checkers Board */}
@@ -496,6 +634,12 @@ export default function CheckersGamePage() {
                   ? ChessColor.Black
                   : ChessColor.White) as any
               }
+              forcedCapture={checkersForcedUi.forcedCapture}
+              mandatoryPieceSquares={checkersForcedUi.mandatoryPieceSquares}
+              singleLegalMoveHighlight={
+                checkersForcedUi.singleLegalMoveHighlight
+              }
+              comboContinuePiece={checkersForcedUi.comboContinuePiece}
             />
           </div>
 
@@ -511,12 +655,8 @@ export default function CheckersGamePage() {
                 ? "Red player"
                 : "Black player"
             }
-            className={`object-cover object-center border-4 ${gameState?.currentPlayer === currentPlayer?.color ? "border-yellow-400" : "border-gray-700"}`}
-            style={{
-              height: `calc(100vh${isSidebarOpen ? "" : " - 10px"})`,
-              width: SIDE_IMAGE_WIDTH,
-              boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
-            }}
+            className={`object-cover object-center border-4 transition-[filter,box-shadow] duration-200 ${rightSideActive ? "border-yellow-300" : "border-gray-700"}`}
+            style={sidePortraitStyle(rightSideActive)}
           />
         </div>
 
@@ -1004,14 +1144,17 @@ export default function CheckersGamePage() {
 }
 
 // Convert checkers pieces to chess pieces for the board display
-function convertBoardForChessBoard(checkersBoard: (any | null)[][]) {
+function convertBoardForChessBoard(
+  checkersBoard: (CheckersPiece | null)[][],
+) {
   return checkersBoard.map((row) =>
     row.map((piece) => {
-      if (!piece) return { type: 0, color: 0 }; // Empty
-      // Use rook as checker piece, white rook for red checkers, black rook for black checkers
+      if (!piece) return { type: ChessPieceType.Empty, color: ChessColor.NoColor };
       return {
-        type: 2, // Rook
-        color: piece.color === 1 ? 1 : 2, // Red checkers = White rooks, Black checkers = Black rooks
+        type: ChessPieceType.Rook,
+        color:
+          piece.color === CheckersColor.Red ? ChessColor.White : ChessColor.Black,
+        isKing: piece.isKing,
       };
     }),
   );

@@ -1,5 +1,9 @@
 import React, { useState } from "react";
 import ChessBoard from "../chess/ChessBoard";
+import {
+  countTotalLegalMoves,
+  getMandatoryCapturePiecePositions,
+} from "./checkers-legal-stats";
 
 const CheckersPage = () => {
   const [gameState, setGameState] = useState({
@@ -17,6 +21,16 @@ const CheckersPage = () => {
   const SIDE_IMAGE_WIDTH = 360; // px (approx width reservation for each tall image)
   const SIDE_IMAGE_GAP = 24; // px total gaps between images and board
   const TOTAL_SIDE_IMAGES_WIDTH = SIDE_IMAGE_WIDTH * 2 + SIDE_IMAGE_GAP * 2;
+
+  /** Active side: +20% luminosity + stronger border glow; inactive: 50% dampened. */
+  const sidePortraitStyle = (isActive) => ({
+    height: `calc(100vh${isSidebarOpen ? "" : " - 10px"})`,
+    width: SIDE_IMAGE_WIDTH,
+    filter: isActive ? "brightness(1.2)" : "brightness(0.5)",
+    boxShadow: isActive
+      ? "0 0 0 2px #000, inset 0 0 0 1px #000, 0 0 28px rgba(250, 204, 21, 0.55)"
+      : "0 0 0 2px #000, inset 0 0 0 1px #000",
+  });
 
   function initializeBoard() {
     const board = Array(8)
@@ -47,12 +61,11 @@ const CheckersPage = () => {
   const handleSquareClick = (row, col) => {
     const clickedPiece = gameState.board[row][col];
 
-    // If we're in a capture sequence, only allow continuing the sequence
-    if (gameState.captureSequence.length > 0) {
+    // During multi-jump, after deselecting, only the jumping piece may be re-selected
+    if (gameState.captureSequence.length > 0 && !gameState.selectedSquare) {
       const lastMove =
         gameState.captureSequence[gameState.captureSequence.length - 1];
       if (lastMove.to.row !== row || lastMove.to.col !== col) {
-        // Not continuing the capture sequence, invalid move
         return;
       }
     }
@@ -266,59 +279,12 @@ const CheckersPage = () => {
     }));
   };
 
-  const getPossibleMoves = (row, col, board) => {
-    const piece = board[row][col];
-    if (!piece || piece.type !== "checker") return [];
-
-    const moves = [];
-    const captures = getCaptureMoves(row, col, board);
-
-    // If captures are available, only show capture moves
-    if (captures.length > 0) {
-      return captures;
-    }
-
-    // Otherwise, show regular moves
-    const directions = piece.isKing
-      ? [
-          [-1, -1],
-          [-1, 1],
-          [1, -1],
-          [1, 1],
-        ] // Kings can move in all diagonal directions
-      : piece.color === "red"
-        ? [
-            [1, -1],
-            [1, 1],
-          ]
-        : [
-            [-1, -1],
-            [-1, 1],
-          ]; // Regular pieces move forward only
-
-    for (const [dRow, dCol] of directions) {
-      const newRow = row + dRow;
-      const newCol = col + dCol;
-
-      if (
-        newRow >= 0 &&
-        newRow < 8 &&
-        newCol >= 0 &&
-        newCol < 8 &&
-        !board[newRow][newCol]
-      ) {
-        moves.push({ row: newRow, col: newCol });
-      }
-    }
-
-    return moves;
-  };
-
   const getCaptureMoves = (row, col, board) => {
     const piece = board[row][col];
     if (!piece || piece.type !== "checker") return [];
 
     const moves = [];
+    // Men capture forward only (American checkers); kings use all four diagonals, so multi-jump can reverse direction only after crowning.
     const directions = piece.isKing
       ? [
           [-1, -1],
@@ -353,6 +319,68 @@ const CheckersPage = () => {
         if (middlePiece && middlePiece.color !== piece.color) {
           moves.push({ row: jumpRow, col: jumpCol, isCapture: true });
         }
+      }
+    }
+
+    return moves;
+  };
+
+  const hasAnyCaptureForPlayer = (board, color) => {
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const p = board[r][c];
+        if (p && p.color === color && getCaptureMoves(r, c, board).length > 0) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  const getPossibleMoves = (row, col, board) => {
+    const piece = board[row][col];
+    if (!piece || piece.type !== "checker") return [];
+
+    const captures = getCaptureMoves(row, col, board);
+
+    if (hasAnyCaptureForPlayer(board, piece.color)) {
+      return captures;
+    }
+
+    if (captures.length > 0) {
+      return captures;
+    }
+
+    const moves = [];
+    const directions = piece.isKing
+      ? [
+          [-1, -1],
+          [-1, 1],
+          [1, -1],
+          [1, 1],
+        ]
+      : piece.color === "red"
+        ? [
+            [1, -1],
+            [1, 1],
+          ]
+        : [
+            [-1, -1],
+            [-1, 1],
+          ];
+
+    for (const [dRow, dCol] of directions) {
+      const newRow = row + dRow;
+      const newCol = col + dCol;
+
+      if (
+        newRow >= 0 &&
+        newRow < 8 &&
+        newCol >= 0 &&
+        newCol < 8 &&
+        !board[newRow][newCol]
+      ) {
+        moves.push({ row: newRow, col: newCol });
       }
     }
 
@@ -421,6 +449,47 @@ const CheckersPage = () => {
 
   const chessBoard = convertBoardForChessBoard(gameState.board);
 
+  const inComboContinue =
+    gameState.gameStatus === "playing" &&
+    gameState.captureSequence.length > 0;
+  const comboMandatorySquare =
+    inComboContinue &&
+    gameState.captureSequence[gameState.captureSequence.length - 1].to;
+
+  const showForcedHints =
+    gameState.gameStatus === "playing" &&
+    gameState.captureSequence.length === 0;
+  const board = gameState.board;
+  const cp = gameState.currentPlayer;
+  const forcedCapture =
+    inComboContinue ||
+    (showForcedHints && hasAnyCaptureForPlayer(board, cp));
+  const mandatoryPieceSquares = inComboContinue && comboMandatorySquare
+    ? [{ row: comboMandatorySquare.row, col: comboMandatorySquare.col }]
+    : showForcedHints
+      ? getMandatoryCapturePiecePositions(
+          board,
+          hasAnyCaptureForPlayer(board, cp),
+          (p, r, c) => p && p.color === cp,
+          getCaptureMoves,
+        )
+      : [];
+  const totalLegalMoves = showForcedHints
+    ? countTotalLegalMoves(
+        board,
+        (p, r, c) => p && p.color === cp,
+        getPossibleMoves,
+      )
+    : 0;
+  let singleLegalMoveHighlight = false;
+  if (gameState.gameStatus === "playing") {
+    if (gameState.captureSequence.length > 0) {
+      singleLegalMoveHighlight = gameState.possibleMoves.length === 1;
+    } else {
+      singleLegalMoveHighlight = totalLegalMoves === 1;
+    }
+  }
+
   return (
     <div
       className="min-h-screen bg-gray-900 text-white flex flex-col"
@@ -432,7 +501,7 @@ const CheckersPage = () => {
         alt="chess sprites"
         className="hidden"
         width={32}
-        height={128}
+        height={144}
       />
 
       {/* Sidebar Toggle Button (always visible) */}
@@ -465,12 +534,8 @@ const CheckersPage = () => {
           <img
             src="/games/chess/dark-cat.jpg"
             alt="Black player"
-            className={`object-cover object-center border-4 ${gameState.currentPlayer === "black" ? "border-yellow-400" : "border-gray-700"}`}
-            style={{
-              height: `calc(100vh${isSidebarOpen ? "" : " - 10px"})`,
-              width: SIDE_IMAGE_WIDTH,
-              boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
-            }}
+            className={`object-cover object-center border-4 transition-[filter,box-shadow] duration-200 ${gameState.currentPlayer === "black" ? "border-yellow-300" : "border-gray-700"}`}
+            style={sidePortraitStyle(gameState.currentPlayer === "black")}
           />
 
           {/* Checkers Board */}
@@ -482,6 +547,12 @@ const CheckersPage = () => {
               onSquareClick={handleSquareClick}
               sideImagesWidth={TOTAL_SIDE_IMAGES_WIDTH}
               isSidebarOpen={isSidebarOpen}
+              forcedCapture={forcedCapture}
+              mandatoryPieceSquares={mandatoryPieceSquares}
+              singleLegalMoveHighlight={singleLegalMoveHighlight}
+              comboContinuePiece={
+                inComboContinue ? comboMandatorySquare : null
+              }
             />
           </div>
 
@@ -489,12 +560,8 @@ const CheckersPage = () => {
           <img
             src="/games/chess/light-cat.jpg"
             alt="Red player"
-            className={`object-cover object-center border-4 ${gameState.currentPlayer === "red" ? "border-yellow-400" : "border-gray-700"}`}
-            style={{
-              height: `calc(100vh${isSidebarOpen ? "" : " - 10px"})`,
-              width: SIDE_IMAGE_WIDTH,
-              boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
-            }}
+            className={`object-cover object-center border-4 transition-[filter,box-shadow] duration-200 ${gameState.currentPlayer === "red" ? "border-yellow-300" : "border-gray-700"}`}
+            style={sidePortraitStyle(gameState.currentPlayer === "red")}
           />
         </div>
 
