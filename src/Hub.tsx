@@ -1,5 +1,9 @@
 import { Link } from "react-router-dom";
-import { HUB_ENTRIES } from "./catalog";
+import {
+  HUB_CHRIS_COURSES_ENTRIES,
+  HUB_MULTIPLAYER_ENTRIES,
+  HUB_PERSONAL_ENTRIES,
+} from "./catalog";
 
 /** Distinct card backgrounds (cycles if list grows). */
 const HUB_CARD_COLOR_CLASSES = [
@@ -27,19 +31,97 @@ export function Hub() {
           </p>
         </header>
 
-        <div className="hub__grid">
-          {HUB_ENTRIES.map((e, i) => (
-            <Link
-              key={e.id}
-              to={e.kind === "iframe" ? `/play/${e.id}` : e.path}
-              className={`hub-card ${
-                HUB_CARD_COLOR_CLASSES[i % HUB_CARD_COLOR_CLASSES.length]
-              }`}
+        <section className="hub__section" aria-labelledby="hub-personal-heading">
+          <h2
+            id="hub-personal-heading"
+            className="hub__section-heading hub__subtitle--pixel"
+          >
+            Single player gamers
+          </h2>
+          <div className="hub__grid">
+            {HUB_PERSONAL_ENTRIES.map((e, i) => (
+              <Link
+                key={e.id}
+                to={e.kind === "iframe" ? `/play/${e.id}` : e.path}
+                className={`hub-card ${
+                  HUB_CARD_COLOR_CLASSES[i % HUB_CARD_COLOR_CLASSES.length]
+                }`}
+              >
+                <span className="hub-card__title">{e.title.toUpperCase()}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section
+          className="hub__section"
+          aria-labelledby="hub-multiplayer-heading"
+        >
+          <h2
+            id="hub-multiplayer-heading"
+            className="hub__section-heading hub__subtitle--pixel"
+          >
+            Online Multiplayer
+          </h2>
+          <div className="hub__grid">
+            {HUB_MULTIPLAYER_ENTRIES.map((e, i) => (
+              <Link
+                key={e.id}
+                to="/multiplayer"
+                className={`hub-card ${
+                  HUB_CARD_COLOR_CLASSES[
+                    (HUB_PERSONAL_ENTRIES.length + i) %
+                      HUB_CARD_COLOR_CLASSES.length
+                  ]
+                }`}
+              >
+                <span className="hub-card__title">{e.title.toUpperCase()}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section
+          className="hub__section hub__section--tutorial"
+          aria-labelledby="hub-chris-courses-heading"
+        >
+          <h2
+            id="hub-chris-courses-heading"
+            className="hub__section-heading hub__subtitle--pixel"
+          >
+            Chris Courses tutorials
+          </h2>
+          <p className="hub__credit">
+            Fighting game, Kings and Pigs, Sunnyland platformer, and Tower
+            defence follow tutorials by{" "}
+            <a
+              href="https://www.youtube.com/c/chriscourses"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              <span className="hub-card__title">{e.title.toUpperCase()}</span>
-            </Link>
-          ))}
-        </div>
+              Chris Courses
+            </a>{" "}
+            on YouTube.
+          </p>
+          <div className="hub__grid">
+            {HUB_CHRIS_COURSES_ENTRIES.map((e, i) => (
+              <Link
+                key={e.id}
+                to={e.kind === "iframe" ? `/play/${e.id}` : e.path}
+                className={`hub-card ${
+                  HUB_CARD_COLOR_CLASSES[
+                    (HUB_PERSONAL_ENTRIES.length +
+                      HUB_MULTIPLAYER_ENTRIES.length +
+                      i) %
+                      HUB_CARD_COLOR_CLASSES.length
+                  ]
+                }`}
+              >
+                <span className="hub-card__title">{e.title.toUpperCase()}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
 
         <p className="hub__repo hub__repo--pixel">
           PUBLIC REPO —{" "}

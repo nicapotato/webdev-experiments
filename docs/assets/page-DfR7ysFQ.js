@@ -1,13 +1,15 @@
-import { u as K, d as J, e as _, z as q, r as t, j as e, t as p } from "./index-BxzNaUpi.js";
-import { B as u } from "./button-D7fQsbb7.js";
-import { r as X, A as Z, e as Q, C as ee, S as se, D as h, f as te, j as re } from "./snake-game-multiplayer-CBsmYV7B.js";
+import { u as K, e as J, d as _, z as q, r as t, j as e, t as p } from "./index-CZZOmvhJ.js";
+import { B as u } from "./button-qo_KCcUR.js";
+import { r as X, A as Z, e as Q, C as ee, S as se, D as h, f as te, j as re } from "./snake-game-multiplayer-BzWLKIQD.js";
 import { g as ae } from "./player-utils-sDKa8flh.js";
-import { u as oe, a as ne } from "./multiplayer-join-gate-r0pFxZYF.js";
-import { R as P, U as le } from "./users-BvO0pGSn.js";
-import { G as ie } from "./grid-3x3-a_VJ9wWf.js";
-import { W as ce } from "./wifi-Ci88SGMf.js";
+import { u as oe, a as ne } from "./multiplayer-join-gate-BCfMKsXN.js";
+import { R as P, U as le } from "./users-BTJDqaOO.js";
+import { G as ie } from "./grid-3x3-Bw_y8kav.js";
+import { W as ce } from "./wifi-C3TPAEC5.js";
+import "./utils-CqPFCyuf.js";
+import "./createLucideIcon-BFFgSLy4.js";
 import "./gin-DHzzR3IR.js";
-function ge() {
+function Se() {
   var _a;
   const g = K(), O = J(), [E] = _(), { theme: I } = q(), f = oe("snake"), k = (_a = O.state) == null ? void 0 : _a.roomPassword, A = t.useMemo(() => {
     const s = E.get("tickMs");
@@ -112,5 +114,5 @@ function ge() {
   }), (!(a == null ? void 0 : a.players) || a.players.length === 0) && e.jsx("p", { className: "text-yellow-300 text-center py-4", style: { fontSize: "8px", fontFamily: "'Press Start 2P', monospace" }, children: "WAITING FOR PLAYERS..." })] }, `players-${W}`) })] }), e.jsxs("div", { className: "bg-gray-900 border-4 border-yellow-400 rounded-lg overflow-hidden", style: { boxShadow: "0 4px 12px rgba(0,0,0,0.8)" }, children: [e.jsx("div", { className: "bg-yellow-400 px-4 py-3 border-b-4 border-yellow-400", children: e.jsx("h3", { className: "text-black font-bold", style: { fontSize: "10px", fontFamily: "'Press Start 2P', monospace" }, children: "GAME STATUS" }) }), e.jsx("div", { className: "p-4", children: e.jsxs("div", { className: "space-y-3", children: [e.jsxs("div", { className: "flex justify-between items-center", children: [e.jsx("span", { className: "text-yellow-300", style: { fontSize: "8px", fontFamily: "'Press Start 2P', monospace" }, children: "STATUS:" }), e.jsx("div", { className: `px-3 py-1 border-2 text-black ${l === "playing" ? "bg-green-400 border-green-400" : l === "finished" ? "bg-red-400 border-red-400" : "bg-yellow-400 border-yellow-400"}`, style: { fontSize: "6px", fontFamily: "'Press Start 2P', monospace", boxShadow: "0 0 0 1px #000" }, children: l.toUpperCase() })] }), (a == null ? void 0 : a.winner) && e.jsxs("div", { className: "flex justify-between items-center", children: [e.jsx("span", { className: "text-yellow-300", style: { fontSize: "8px", fontFamily: "'Press Start 2P', monospace" }, children: "WINNER:" }), e.jsx("span", { className: "text-yellow-400 font-bold", style: { fontSize: "8px", fontFamily: "'Press Start 2P', monospace" }, children: a.winner })] }), e.jsxs("div", { className: "flex justify-between items-center", children: [e.jsx("span", { className: "text-yellow-300", style: { fontSize: "8px", fontFamily: "'Press Start 2P', monospace" }, children: "FOOD:" }), e.jsx("span", { className: "text-yellow-400", style: { fontSize: "8px", fontFamily: "'Press Start 2P', monospace" }, children: (a == null ? void 0 : a.food) ? `(${a.food.position.X}, ${a.food.position.Y})` : "NONE" })] })] }) })] })] }) })] })] })] });
 }
 export {
-  ge as default
+  Se as default
 };

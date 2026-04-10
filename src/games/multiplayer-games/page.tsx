@@ -1,15 +1,7 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { Fragment, useState, useEffect, useMemo } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTheme } from "next-themes";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -19,25 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import {
-  ArrowLeft,
-  Gamepad2,
-  Users,
-  RefreshCw,
-  ChevronDown,
-  Settings,
-  Eye,
-  EyeOff,
-  Grid3X3,
-  ArrowRight,
-  Users2,
-  Zap,
-  Crown,
-  Swords,
-  Play,
-  Lock,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowLeft, Users, Lock } from "lucide-react";
 import { toast } from "sonner";
 import {
   generateRoomId,
@@ -66,16 +40,15 @@ import {
 import { allowMultiplayerJoin } from "@/lib/multiplayer-join-gate";
 import { cn } from "@/lib/utils";
 import { verifyRoomJoinPassword } from "@/games/multiplayer-games/verify-room-join";
+import { FloatingBackButton } from "@/components/FloatingBackButton";
+import { MultiplayerLobbyPixelActions } from "@/components/MultiplayerLobbyPixelActions";
 
-// Game configurations for the right panel and gallery
 type GameKey = "snake" | "chess" | "checkers" | "fighter";
+
 type GameConfig = {
   name: string;
-  description: string;
   maxPlayers: number;
   styles: string[];
-  icon: LucideIcon;
-  color: string;
   details: string;
   image?: string;
   gradient?: string;
@@ -85,56 +58,84 @@ type GameConfig = {
 const gameConfigs: Record<GameKey, GameConfig> = {
   snake: {
     name: "Snake",
-    description: "Classic multiplayer snake game with real-time competition",
     maxPlayers: 8,
     styles: ["Classic", "Speed", "Maze"],
-    icon: Zap,
-    color: "bg-green-500",
     image: "/games/snake/multiplayer-snake.jpg",
     details:
       "Compete with 2-8 players in this fast-paced snake game. Last snake standing wins!",
   },
   chess: {
     name: "Chess",
-    description: "Strategic board game for two players",
     maxPlayers: 2,
     styles: ["Standard", "Blitz", "Rapid"],
-    icon: Crown,
-    color: "bg-blue-500",
     image: "/games/chess/sample-screenshot.jpg",
     details:
       "Play the timeless game of chess with another player. Choose your time control and strategy.",
   },
   checkers: {
     name: "Checkers",
-    description: "Classic checkers game with jumping mechanics",
     maxPlayers: 2,
     styles: ["Standard", "International"],
-    icon: Grid3X3,
-    color: "bg-orange-500",
     image: "/games/checkers/sample-screenshot.jpg",
     details:
       "Jump over your opponent's pieces to capture them. First to capture all pieces wins!",
   },
   fighter: {
     name: "Fighter",
-    description: "Real-time fighting game with combos and special moves",
     maxPlayers: 2,
     styles: ["Arcade", "Street Fighter", "Mortal Kombat"],
-    icon: Swords,
-    color: "bg-red-500",
-    // Match single player fighter variation style (gradient + emoji)
-    gradient: "bg-gradient-to-br from-red-800 via-red-600 to-orange-600",
+    gradient: "bg-gradient-to-br from-neutral-950 via-neutral-900 to-black",
     emoji: "⚔️",
     details:
       "Battle it out in this fast-paced fighting game. Master combos and special moves to win!",
   },
 };
 
+const GAME_ORDER: GameKey[] = ["snake", "chess", "checkers", "fighter"];
+
+/** Matches hub card palette order: Snake, Chess, Checkers, Fighter */
+const GAME_HUB_CARD_CLASSES = [
+  "hub-card--c0",
+  "hub-card--c1",
+  "hub-card--c2",
+  "hub-card--c3",
+] as const;
+
+function parseSelectGames(value: string | null): Set<GameKey> {
+  if (!value?.trim()) return new Set();
+  const out = new Set<GameKey>();
+  for (const part of value.split(",")) {
+    const k = part.trim().toLowerCase();
+    if (
+      k === "snake" ||
+      k === "chess" ||
+      k === "checkers" ||
+      k === "fighter"
+    ) {
+      out.add(k as GameKey);
+    }
+  }
+  return out;
+}
+
+function formatTimeSinceLastRefresh(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  if (totalSec < 60) return `${totalSec}s`;
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  if (s === 0) return `${m} min`;
+  return `${m} min ${s}s`;
+}
+
 export default function MultiplayerGameLobbyPage() {
   const navigate = useNavigate();
-  const { theme } = useTheme();
-  const [roomIdInput, setRoomIdInput] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectKey = searchParams.get("select") ?? "";
+  const selectedFilterGames = useMemo(
+    () => parseSelectGames(selectKey),
+    [selectKey],
+  );
+  const { theme, resolvedTheme } = useTheme();
   const [isCreating, setIsCreating] = useState(false);
   const [activeRooms, setActiveRooms] = useState<ActiveRoomInfo[]>([]);
   const [activeChessRooms, setActiveChessRooms] = useState<
@@ -148,53 +149,55 @@ export default function MultiplayerGameLobbyPage() {
   >([]);
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
 
-  // Layout state
-  const [isRightPanelVisible, setIsRightPanelVisible] = useState(true);
-  const [rightPanelWidth, setRightPanelWidth] = useState(480);
-  const splitContainerRef = useRef<HTMLDivElement | null>(null);
-
-  // Right panel state
-  const [rightPanelMode, setRightPanelMode] = useState<"gallery" | "expanded">(
-    "gallery",
-  );
-  const [selectedGameForDetails, setSelectedGameForDetails] =
+  /** Set only after choosing a game in the create-game modal. */
+  const [selectedGameForCreate, setSelectedGameForCreate] =
     useState<GameKey | null>(null);
+  const [createGameModalOpen, setCreateGameModalOpen] = useState(false);
 
-  // Game creation state
-  const [gameType, setGameType] = useState("all");
   const [numPlayers, setNumPlayers] = useState("2");
   const [roomGameType, setRoomGameType] = useState("basic");
-  const [snakeTickMs, setSnakeTickMs] = useState("50");
+  const [snakeTickMs, setSnakeTickMs] = useState(50);
   const [selectedStyle, setSelectedStyle] = useState("");
   const [additionalRules, setAdditionalRules] = useState("");
   const [passwordProtectRoom, setPasswordProtectRoom] = useState(false);
   const [createRoomPassword, setCreateRoomPassword] = useState("");
-  /** `${game}:${roomId}` when that row is showing the password field */
   const [joinPromptKey, setJoinPromptKey] = useState<string | null>(null);
   const [joinPasswordDraft, setJoinPasswordDraft] = useState<
     Record<string, string>
   >({});
-  /** After join-check API returns 403 — red border on that row’s password field */
   const [joinPasswordRejected, setJoinPasswordRejected] = useState<
     Record<string, boolean>
   >({});
-  /** Row currently awaiting verifyRoomJoinPassword (disables JOIN) */
   const [joinVerifyKey, setJoinVerifyKey] = useState<string | null>(null);
 
-  // Currently selected game config (for right panel background)
-  const selectedConfig = selectedGameForDetails
-    ? gameConfigs[selectedGameForDetails]
-    : null;
+  /** All | Open (no password) | Password-protected */
+  const [passwordFilter, setPasswordFilter] = useState<
+    "all" | "open" | "password"
+  >("all");
 
-  // Get appropriate game icon based on theme
+  /** Wall-clock tick so “time since last refresh” updates every second. */
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [lastRefreshAt, setLastRefreshAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setRefreshTick((n) => n + 1);
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
   const getGameIconSrc = () => {
-    // Dark mode uses light icon, light mode uses dark icon (they are inverted)
     return theme === "dark"
       ? "/games/game-icon-light.svg"
       : "/games/game-icon-dark.svg";
   };
 
-  // Fetch active rooms
+  /** White asset on dark lobby; dark asset on light panel so it stays visible. */
+  const emptyLobbyIconSrc =
+    resolvedTheme === "light"
+      ? "/games/game-icon-dark.svg"
+      : "/games/game-icon-light.svg";
+
   const fetchActiveRooms = async () => {
     setIsLoadingRooms(true);
     try {
@@ -209,6 +212,7 @@ export default function MultiplayerGameLobbyPage() {
       setActiveChessRooms(chessRooms);
       setActiveCheckersRooms(checkersRooms);
       setActiveFighterRooms(fighterRooms);
+      setLastRefreshAt(Date.now());
     } catch (error) {
       console.error("Failed to fetch active rooms:", error);
       toast.error("Failed to load active rooms");
@@ -217,20 +221,8 @@ export default function MultiplayerGameLobbyPage() {
     }
   };
 
-  // Load active rooms on mount
   useEffect(() => {
     fetchActiveRooms();
-  }, []);
-
-  // Initialize right panel width to 50% of available space (clamped by min/max)
-  useEffect(() => {
-    const container = splitContainerRef.current;
-    if (container) {
-      const containerWidth = container.offsetWidth;
-      const halfWidth = containerWidth / 2;
-      const maxWidth = containerWidth * 0.7;
-      setRightPanelWidth(Math.max(380, Math.min(maxWidth, halfWidth)));
-    }
   }, []);
 
   const joinRowKey = (game: GameKey, roomId: string) => `${game}:${roomId}`;
@@ -244,6 +236,20 @@ export default function MultiplayerGameLobbyPage() {
     ],
     [activeRooms, activeChessRooms, activeCheckersRooms, activeFighterRooms],
   );
+
+  const filteredLobbyRows = useMemo(() => {
+    if (selectedFilterGames.size === 0) return lobbyRows;
+    return lobbyRows.filter(({ game }) => selectedFilterGames.has(game));
+  }, [lobbyRows, selectedFilterGames]);
+
+  const displayRows = useMemo(() => {
+    return filteredLobbyRows.filter(({ room }) => {
+      const locked = !!room.passwordProtected;
+      if (passwordFilter === "all") return true;
+      if (passwordFilter === "open") return !locked;
+      return locked;
+    });
+  }, [filteredLobbyRows, passwordFilter]);
 
   const gameRowBadgeClass = (game: GameKey) => {
     switch (game) {
@@ -260,34 +266,20 @@ export default function MultiplayerGameLobbyPage() {
     }
   };
 
-  // Join existing room (password comes from the row draft when protected)
   const joinRoom = (
-    roomId?: string,
-    gameType?: "snake" | "chess" | "checkers" | "fighter",
+    roomId: string,
+    gameType: GameKey,
     roomPassword?: string,
   ) => {
-    const targetRoomId = roomId || roomIdInput.trim();
-    const targetGameType = gameType;
-
-    if (!targetRoomId) {
-      toast.error("Please enter a room ID");
-      return;
-    }
-
-    if (!targetGameType) {
-      toast.error("Game type is required");
-      return;
-    }
-
     let isValidRoomId = false;
-    if (targetGameType === "snake") {
-      isValidRoomId = validateRoomId(targetRoomId);
-    } else if (targetGameType === "chess") {
-      isValidRoomId = validateChessRoomId(targetRoomId);
-    } else if (targetGameType === "checkers") {
-      isValidRoomId = validateCheckersRoomId(targetRoomId);
-    } else if (targetGameType === "fighter") {
-      isValidRoomId = validateFighterRoomId(targetRoomId);
+    if (gameType === "snake") {
+      isValidRoomId = validateRoomId(roomId);
+    } else if (gameType === "chess") {
+      isValidRoomId = validateChessRoomId(roomId);
+    } else if (gameType === "checkers") {
+      isValidRoomId = validateCheckersRoomId(roomId);
+    } else if (gameType === "fighter") {
+      isValidRoomId = validateFighterRoomId(roomId);
     }
 
     if (!isValidRoomId) {
@@ -296,8 +288,8 @@ export default function MultiplayerGameLobbyPage() {
     }
 
     const pw = roomPassword?.trim() || undefined;
-    allowMultiplayerJoin(targetRoomId, targetGameType);
-    navigate(`/multiplayer/${targetRoomId}/${targetGameType}`, {
+    allowMultiplayerJoin(roomId, gameType);
+    navigate(`/multiplayer/${roomId}/${gameType}`, {
       state: { roomPassword: pw },
     });
   };
@@ -347,29 +339,38 @@ export default function MultiplayerGameLobbyPage() {
     }
   };
 
-  // Handle game card click in gallery
-  const handleGameCardClick = (gameType: GameKey) => {
-    setSelectedGameForDetails(gameType);
-    setRightPanelMode("expanded");
-    // Reset game creation state
+  const toggleFilterGame = (game: GameKey) => {
+    const next = new Set(selectedFilterGames);
+    if (next.has(game)) next.delete(game);
+    else next.add(game);
+    const params = new URLSearchParams(searchParams);
+    if (next.size === 0) params.delete("select");
+    else params.set("select", [...next].sort().join(","));
+    setSearchParams(params, { replace: true });
+  };
+
+  const resetCreateFormDefaults = () => {
     setNumPlayers("2");
     setRoomGameType("basic");
-    setSnakeTickMs("50");
+    setSnakeTickMs(50);
     setSelectedStyle("");
     setAdditionalRules("");
     setPasswordProtectRoom(false);
     setCreateRoomPassword("");
   };
 
-  // Handle browse games button
-  const handleBrowseGames = () => {
-    setRightPanelMode("gallery");
-    setSelectedGameForDetails(null);
+  const pickGameInCreateModal = (game: GameKey) => {
+    resetCreateFormDefaults();
+    setSelectedGameForCreate(game);
+    setCreateGameModalOpen(false);
   };
 
-  // Create new room
+  const handleCloseCreatePanel = () => {
+    setSelectedGameForCreate(null);
+  };
+
   const createRoom = async () => {
-    if (!selectedGameForDetails) return;
+    if (!selectedGameForCreate) return;
 
     if (passwordProtectRoom && !createRoomPassword.trim()) {
       toast.error("Enter a room password");
@@ -383,24 +384,24 @@ export default function MultiplayerGameLobbyPage() {
     setIsCreating(true);
     try {
       let newRoomId = "";
-      if (selectedGameForDetails === "snake") {
+      if (selectedGameForCreate === "snake") {
         newRoomId = generateRoomId();
         allowMultiplayerJoin(newRoomId, "snake");
         navigate(
-          `/multiplayer/${newRoomId}/snake?tickMs=${encodeURIComponent(snakeTickMs)}`,
+          `/multiplayer/${newRoomId}/snake?tickMs=${encodeURIComponent(String(snakeTickMs))}`,
           { state: { roomPassword: roomPasswordState } },
         );
         return;
       }
-      if (selectedGameForDetails === "chess") {
+      if (selectedGameForCreate === "chess") {
         newRoomId = generateChessRoomId();
-      } else if (selectedGameForDetails === "checkers") {
+      } else if (selectedGameForCreate === "checkers") {
         newRoomId = generateCheckersRoomId();
-      } else if (selectedGameForDetails === "fighter") {
+      } else if (selectedGameForCreate === "fighter") {
         newRoomId = generateFighterRoomId();
       }
-      allowMultiplayerJoin(newRoomId, selectedGameForDetails);
-      navigate(`/multiplayer/${newRoomId}/${selectedGameForDetails}`, {
+      allowMultiplayerJoin(newRoomId, selectedGameForCreate);
+      navigate(`/multiplayer/${newRoomId}/${selectedGameForCreate}`, {
         state: { roomPassword: roomPasswordState },
       });
     } catch (error) {
@@ -410,673 +411,690 @@ export default function MultiplayerGameLobbyPage() {
     }
   };
 
+  const totalRoomCount =
+    activeRooms.length +
+    activeChessRooms.length +
+    activeCheckersRooms.length +
+    activeFighterRooms.length;
+
+  const refreshAgeMs = useMemo(() => {
+    void refreshTick;
+    if (lastRefreshAt == null) return null;
+    return Date.now() - lastRefreshAt;
+  }, [lastRefreshAt, refreshTick]);
+
+  const refreshToneClass =
+    refreshAgeMs == null
+      ? "multiplayer-lobby__pixel-refresh--fresh"
+      : refreshAgeMs >= 300_000
+        ? "multiplayer-lobby__pixel-refresh--very-stale"
+        : refreshAgeMs >= 60_000
+          ? "multiplayer-lobby__pixel-refresh--stale"
+          : "multiplayer-lobby__pixel-refresh--fresh";
+
+  const anyLobbyFilterActive =
+    selectedFilterGames.size > 0 || passwordFilter !== "all";
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <h1
-                  className="uppercase text-4xl sm:text-5xl md:text-6xl font-black tracking-widest flex items-center gap-3"
-                  style={{ fontFamily: "'Press Start 2P', monospace" }}
-                >
-                  Multiplayer Games
-                </h1>
-                <p className="text-muted-foreground">
-                  Create or join a multiplayer game
-                </p>
-              </div>
+    <div className="app-root app-root--home hub-page min-h-full">
+      <FloatingBackButton to="/" label="Back to hub" />
+
+      <div className="hub hub--multiplayer-wide pb-8">
+        <header className="hub__header">
+          <div className="flex flex-wrap items-start justify-between gap-4 gap-y-2 mb-0">
+            <div className="min-w-0 flex-1 max-w-[min(100%,28rem)]">
+              <h1 className="hub__title--pixel">MULTIPLAYER</h1>
             </div>
-            <div className="flex flex-col items-end gap-2">
-              <Button
-                onClick={() => navigate("/")}
-                variant="outline"
-                size="sm"
-              >
-                <Play className="h-4 w-4 mr-2" />
-                Single Player Gallery
-              </Button>
-              <Button
-                onClick={() => {
-                  const newVisibility = !isRightPanelVisible;
-                  setIsRightPanelVisible(newVisibility);
-                  if (newVisibility) {
-                    setRightPanelMode("gallery");
-                    setSelectedGameForDetails(null);
-                    const container = splitContainerRef.current;
-                    if (container) {
-                      const containerWidth = container.offsetWidth;
-                      const maxWidth = containerWidth * 0.7;
-                      const halfWidth = containerWidth / 2;
-                      setRightPanelWidth(
-                        Math.max(380, Math.min(maxWidth, halfWidth)),
-                      );
-                    }
-                  }
-                }}
-                size="sm"
-                className="px-4"
-              >
-                {isRightPanelVisible ? (
-                  <EyeOff className="h-4 w-4 mr-2" />
-                ) : (
-                  <Eye className="h-4 w-4 mr-2" />
-                )}
-                Create Game
-              </Button>
-            </div>
+            <Link
+              to="/"
+              className="multiplayer-lobby__nav-link shrink-0 self-start text-right max-sm:w-full max-sm:text-left"
+            >
+              SINGLE PLAYER GALLERY →
+            </Link>
           </div>
-        </div>
-      </div>
+          <p className="multiplayer-lobby__lede">
+            Tap a game card or use the table filters. Use{" "}
+            <strong>CREATE GAME</strong> to host (pick the game in the dialog
+            first).
+          </p>
+        </header>
 
-      {/* Main Content - Split Layout */}
-      <div className="flex flex-1 overflow-hidden" ref={splitContainerRef}>
-        {/* Left Container - Multiplayer Lobby */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="container mx-auto px-6 py-8 space-y-8 flex-1 overflow-y-auto">
-            {/* Join Game Section */}
-            <Card className="flex-1">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <img
-                        src={getGameIconSrc()}
-                        alt="Rooms"
-                        width={20}
-                        height={20}
-                      />
-                      Join Game (
-                      {activeRooms.length +
-                        activeChessRooms.length +
-                        activeCheckersRooms.length +
-                        activeFighterRooms.length}
-                      )
-                    </CardTitle>
-                    <CardDescription>
-                      Join an active game room with other players
-                    </CardDescription>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={fetchActiveRooms}
-                    disabled={isLoadingRooms}
-                  >
-                    <RefreshCw
-                      className={`h-4 w-4 mr-2 ${isLoadingRooms ? "animate-spin" : ""}`}
-                    />
-                    Refresh
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {lobbyRows.length === 0 ? (
-                  <div className="text-center py-12">
-                    <img
-                      src={getGameIconSrc()}
-                      alt="No active rooms"
-                      width={64}
-                      height={64}
-                      className="mx-auto mb-4"
-                    />
-                    <p className="text-muted-foreground text-lg">
-                      {isLoadingRooms
-                        ? "Loading rooms..."
-                        : "No active rooms available"}
-                    </p>
-                    <p className="text-muted-foreground text-sm mt-2">
-                      Create a new game to get started!
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {lobbyRows.map(({ game, room }) => {
-                      const rowKey = joinRowKey(game, room.id);
-                      const maxPlayers = gameConfigs[game].maxPlayers;
-                      const locked = !!room.passwordProtected;
-                      const promptOpen = joinPromptKey === rowKey;
-                      const verifying = joinVerifyKey === rowKey;
-                      const rejected = !!joinPasswordRejected[rowKey];
-                      return (
-                        <Card
-                          key={rowKey}
-                          className="border-border/80 shadow-sm overflow-hidden"
-                        >
-                          <CardContent className="p-4 sm:p-5">
-                            <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:justify-between lg:gap-6">
-                              <div className="min-w-0 flex-1 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
-                                <Badge
-                                  variant="secondary"
-                                  className={gameRowBadgeClass(game)}
-                                >
-                                  {gameConfigs[game].name}
-                                </Badge>
-                                {locked ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="gap-1 border-amber-500/60 text-amber-900 dark:text-amber-200 bg-amber-50/80 dark:bg-amber-950/40"
-                                  >
-                                    <Lock
-                                      className="h-3.5 w-3.5 shrink-0"
-                                      aria-hidden
-                                    />
-                                    Password
-                                  </Badge>
-                                ) : null}
-                                <span className="font-mono font-medium text-sm sm:text-base break-all">
-                                  {room.id}
-                                </span>
-                                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground sm:ml-auto">
-                                  <div className="flex items-center gap-1">
-                                    <Users className="h-4 w-4 shrink-0" />
-                                    <span>
-                                      {room.playerCount}/{maxPlayers}
-                                    </span>
-                                  </div>
-                                  <Badge
-                                    variant={
-                                      room.status === "waiting"
-                                        ? "secondary"
-                                        : "default"
-                                    }
-                                    className={
-                                      room.status === "waiting"
-                                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200"
-                                        : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200"
-                                    }
-                                  >
-                                    {room.status}
-                                  </Badge>
-                                </div>
-                              </div>
-
-                              <div className="flex w-full shrink-0 flex-col gap-2 sm:min-w-[min(100%,320px)] lg:w-[min(100%,360px)]">
-                                {locked && promptOpen ? (
-                                  <div className="space-y-1.5">
-                                    <Label
-                                      htmlFor={`join-pw-${rowKey}`}
-                                      className="text-xs text-muted-foreground"
-                                    >
-                                      Room password
-                                    </Label>
-                                    <Input
-                                      id={`join-pw-${rowKey}`}
-                                      type="password"
-                                      name="room-password"
-                                      autoComplete="off"
-                                      autoCorrect="off"
-                                      spellCheck={false}
-                                      aria-invalid={rejected}
-                                      value={joinPasswordDraft[rowKey] ?? ""}
-                                      onChange={(e) => {
-                                        const v = e.target.value;
-                                        setJoinPasswordDraft((prev) => ({
-                                          ...prev,
-                                          [rowKey]: v,
-                                        }));
-                                        if (rejected) {
-                                          setJoinPasswordRejected((prev) => ({
-                                            ...prev,
-                                            [rowKey]: false,
-                                          }));
-                                        }
-                                      }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter" && !verifying) {
-                                          e.preventDefault();
-                                          void handleLobbyJoinClick(
-                                            game,
-                                            room,
-                                          );
-                                        }
-                                      }}
-                                      className={cn(
-                                        "font-mono text-sm",
-                                        rejected &&
-                                          "border-red-500 border-2 ring-2 ring-red-500/35 focus-visible:ring-red-500/50",
-                                      )}
-                                      placeholder="••••••••"
-                                    />
-                                    <p className="text-[10px] text-muted-foreground leading-tight">
-                                      Then tap JOIN.{" "}
-                                      <button
-                                        type="button"
-                                        className="underline underline-offset-2 hover:text-foreground"
-                                        onClick={() => {
-                                          setJoinPromptKey(null);
-                                          setJoinPasswordRejected((prev) => ({
-                                            ...prev,
-                                            [rowKey]: false,
-                                          }));
-                                          setJoinPasswordDraft((prev) => {
-                                            const next = { ...prev };
-                                            delete next[rowKey];
-                                            return next;
-                                          });
-                                        }}
-                                      >
-                                        Cancel
-                                      </button>
-                                    </p>
-                                  </div>
-                                ) : null}
-
-                                <button
-                                  type="button"
-                                  disabled={verifying}
-                                  onClick={() =>
-                                    void handleLobbyJoinClick(game, room)
-                                  }
-                                  style={{
-                                    fontFamily: "'Press Start 2P', monospace",
-                                  }}
-                                  className="w-full py-3.5 px-5 uppercase tracking-[0.12em] text-[11px] sm:text-xs leading-relaxed bg-green-600 hover:bg-green-700 active:bg-green-800 text-white border-2 border-green-900/80 rounded-md shadow-[3px_3px_0_0_rgba(0,0,0,0.35)] hover:shadow-[2px_2px_0_0_rgba(0,0,0,0.35)] hover:translate-y-px transition-all disabled:opacity-60 disabled:pointer-events-none"
-                                >
-                                  {verifying ? "…" : "JOIN"}
-                                </button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Resizable Divider */}
-        {isRightPanelVisible && (
-          <div
-            className="w-1 bg-border cursor-col-resize hover:bg-accent transition-colors"
-            onMouseDown={(e) => {
-              const startX = e.clientX;
-              const startWidth = rightPanelWidth;
-              // Get the main container width for calculating 70% max width
-              const mainContainer = e.currentTarget
-                .parentElement as HTMLElement;
-              const maxWidth = mainContainer
-                ? mainContainer.offsetWidth * 0.7
-                : 600;
-
-              const handleMouseMove = (e: MouseEvent) => {
-                const deltaX = startX - e.clientX;
-                setRightPanelWidth(
-                  Math.max(380, Math.min(maxWidth, startWidth + deltaX)),
-                );
-              };
-
-              const handleMouseUp = () => {
-                document.removeEventListener("mousemove", handleMouseMove);
-                document.removeEventListener("mouseup", handleMouseUp);
-              };
-
-              document.addEventListener("mousemove", handleMouseMove);
-              document.addEventListener("mouseup", handleMouseUp);
-            }}
-          />
-        )}
-
-        {/* Right Container - Game Showcase */}
-        {isRightPanelVisible && (
-          <div
-            className="relative bg-muted/30 border-l cq-right-panel"
-            style={{ width: rightPanelWidth }}
+        <section className="mb-8" aria-labelledby="pick-game-heading">
+          <h2
+            id="pick-game-heading"
+            className="hub__subtitle--pixel mb-4 !text-[clamp(0.42rem,1.55vw,0.55rem)]"
           >
-            {/* Background image/gradient when a card is selected (extended for average color effect) */}
-            {rightPanelMode === "expanded" && selectedConfig && (
-              <div
-                className="absolute inset-x-0 top-0 h-full overflow-hidden"
-                aria-hidden="true"
-              >
-                {selectedConfig.image ? (
-                  <>
-                    {/* Blurred background version for average color effect */}
-                    <img
-                      src={selectedConfig.image}
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-cover pointer-events-none scale-110 blur-sm opacity-20"
-                    />
-                    {/* Main image overlay */}
-                    <div className="absolute inset-0 top-0 h-1/2 overflow-hidden">
+            CHOOSE A GAME
+          </h2>
+          <div className="multiplayer-lobby__game-grid">
+            {GAME_ORDER.map((gameKey, i) => {
+              const config = gameConfigs[gameKey];
+              const selected = selectedFilterGames.has(gameKey);
+              return (
+                <button
+                  key={gameKey}
+                  type="button"
+                  onClick={() => toggleFilterGame(gameKey)}
+                  className={cn(
+                    "hub-card multiplayer-lobby__game-card text-left",
+                    GAME_HUB_CARD_CLASSES[i],
+                    selected && "multiplayer-lobby__game-card--selected",
+                  )}
+                >
+                  <div className="multiplayer-lobby__game-card-inner">
+                    {config.image ? (
                       <img
-                        src={selectedConfig.image}
+                        src={config.image}
                         alt=""
-                        className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+                        className="multiplayer-lobby__game-card-bg"
                       />
+                    ) : config.gradient ? (
+                      <div
+                        className={cn(
+                          "multiplayer-lobby__game-card-bg flex items-center justify-center",
+                          config.gradient,
+                        )}
+                        aria-hidden
+                      >
+                        {config.emoji ? (
+                          <span className="multiplayer-lobby__game-card-emoji">
+                            {config.emoji}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    <div
+                      className="multiplayer-lobby__game-card-scrim"
+                      aria-hidden
+                    />
+                    <div
+                      className="multiplayer-lobby__game-card-banner multiplayer-lobby__game-card-banner--black"
+                      aria-hidden
+                    />
+                    <div className="multiplayer-lobby__game-card-labels">
+                      <span className="multiplayer-lobby__game-card-title">
+                        {config.name}
+                      </span>
+                      <span className="multiplayer-lobby__game-card-meta">
+                        MAX {config.maxPlayers} PLAYERS
+                      </span>
                     </div>
-                  </>
-                ) : selectedConfig.gradient ? (
-                  <div
-                    className={`${selectedConfig.gradient} absolute inset-0`}
-                  />
-                ) : null}
-              </div>
-            )}
-
-            {/* Top-right game name label in expanded mode */}
-            {rightPanelMode === "expanded" && selectedConfig && (
-              <div className="absolute top-4 right-4 z-20 pointer-events-none">
-                <h2 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-wide text-black border border-white px-3 py-1 bg-white/80 backdrop-blur-sm rounded">
-                  {selectedConfig.name}
-                </h2>
-              </div>
-            )}
-            <div className="relative z-10 h-full overflow-y-auto">
-              {rightPanelMode === "gallery" ? (
-                /* Gallery Mode */
-                <div className="p-6 space-y-6">
-                  <div className="text-left">
-                    <h2
-                      className="text-2xl sm:text-3xl font-extrabold uppercase mb-2"
-                      style={{ fontFamily: "'Press Start 2P', monospace" }}
-                    >
-                      Choose a Game
-                    </h2>
-                    <p className="text-muted-foreground">
-                      Select a game to create a multiplayer room
-                    </p>
                   </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
-                  <div className="grid grid-cols-1 gap-3 cq-gallery-grid">
-                    {(
-                      Object.entries(gameConfigs) as [GameKey, GameConfig][]
-                    ).map(([gameType, config]) => {
-                      return (
-                        <article
-                          key={gameType}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => handleGameCardClick(gameType)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              handleGameCardClick(gameType);
-                            }
-                          }}
-                          className="group relative rounded-xl overflow-hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur shadow-md ring-1 ring-black/5 hover:shadow-xl hover:-translate-y-1 hover:ring-2 hover:ring-blue-400/60 transition-all duration-300 cursor-pointer"
-                        >
-                          <div className="relative card-media aspect-[16/9] sm:aspect-[4/3]">
-                            {config.image ? (
-                              <img
-                                src={config.image}
-                                alt={`${config.name} image`}
-                                className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                              />
-                            ) : (
-                              <div
-                                className={`absolute inset-0 ${config.gradient ?? ""} flex items-center justify-center`}
-                                aria-label={`${config.name} gradient`}
-                              >
-                                {config.emoji ? (
-                                  <div className="text-white/90 text-6xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]">
-                                    {config.emoji}
-                                  </div>
-                                ) : null}
-                              </div>
-                            )}
+        {selectedGameForCreate ? (
+          <section
+            className="multiplayer-lobby__panel mb-8"
+            aria-labelledby="create-room-heading"
+          >
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <button
+                type="button"
+                onClick={handleCloseCreatePanel}
+                className="multiplayer-lobby__ghost-link inline-flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+                <span>CLOSE CREATE</span>
+              </button>
+            </div>
 
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-                            <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-                              <h3
-                                className="text-white text-2xl sm:text-3xl font-extrabold drop-shadow uppercase"
-                                style={{
-                                  fontFamily: "'Press Start 2P', monospace",
-                                }}
+            <h2
+              id="create-room-heading"
+              className="hub__subtitle--pixel mb-4 !text-[clamp(0.42rem,1.55vw,0.55rem)]"
+            >
+              CREATE — {gameConfigs[selectedGameForCreate].name.toUpperCase()}
+            </h2>
+
+            {(() => {
+              const config = gameConfigs[selectedGameForCreate];
+              return (
+                <div className="space-y-4">
+                  <p className="multiplayer-lobby__body-text !mb-0">
+                    {config.details}
+                  </p>
+                  <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="multiplayer-lobby__label">
+                        Number of players
+                      </Label>
+                      <Select
+                        value={numPlayers}
+                        onValueChange={setNumPlayers}
+                        disabled={selectedGameForCreate !== "snake"}
+                      >
+                        <SelectTrigger className="multiplayer-lobby__input">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="2">2 Players</SelectItem>
+                          {selectedGameForCreate === "snake" && (
+                            <>
+                              <SelectItem value="4">4 Players</SelectItem>
+                              <SelectItem value="6">6 Players</SelectItem>
+                              <SelectItem value="8">8 Players</SelectItem>
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="multiplayer-lobby__label">
+                        Game style
+                      </Label>
+                      <Select
+                        value={selectedStyle}
+                        onValueChange={setSelectedStyle}
+                      >
+                        <SelectTrigger className="multiplayer-lobby__input">
+                          <SelectValue placeholder="Select style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {config.styles.map((style) => (
+                            <SelectItem
+                              key={style}
+                              value={style.toLowerCase()}
+                            >
+                              {style}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {selectedGameForCreate === "snake" ? (
+                      <>
+                        <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:col-span-2 sm:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <Label className="multiplayer-lobby__label">
+                              Snake game type
+                            </Label>
+                            <Select
+                              value={roomGameType}
+                              onValueChange={setRoomGameType}
+                            >
+                              <SelectTrigger className="multiplayer-lobby__input">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="basic">Basic</SelectItem>
+                                <SelectItem value="advanced">Advanced</SelectItem>
+                                <SelectItem value="future-ideas">
+                                  Future Ideas
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex flex-col justify-end gap-1 pb-0.5">
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                              <Label
+                                className="multiplayer-lobby__label !mb-0"
+                                htmlFor="snake-tick-ms"
                               >
-                                {config.name}
-                              </h3>
-                              <div className="mt-2 flex items-center gap-2">
-                                <Badge
-                                  className="bg-white/20 text-white border-white/30"
-                                  variant="outline"
-                                >
-                                  Max {config.maxPlayers} players
-                                </Badge>
-                              </div>
+                                Game speed (tick)
+                              </Label>
+                              <span className="multiplayer-lobby__tick-value">
+                                {snakeTickMs} ms
+                              </span>
                             </div>
                           </div>
-                        </article>
-                      );
-                    })}
+                        </div>
+                        <div className="space-y-1.5 sm:col-span-2">
+                          <input
+                            id="snake-tick-ms"
+                            type="range"
+                            min={10}
+                            max={400}
+                            step={10}
+                            value={snakeTickMs}
+                            onChange={(e) =>
+                              setSnakeTickMs(Number(e.target.value))
+                            }
+                            className="multiplayer-lobby__range w-full"
+                          />
+                          <p className="multiplayer-lobby__hint !mt-0">
+                            Lower ms = faster movement. Set when the room is
+                            created (host&apos;s first connection).
+                          </p>
+                        </div>
+                      </>
+                    ) : null}
+
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label className="multiplayer-lobby__label">
+                        Additional rules
+                      </Label>
+                      <Input
+                        value={additionalRules}
+                        onChange={(e) => setAdditionalRules(e.target.value)}
+                        placeholder="Custom rules (optional)"
+                        className="multiplayer-lobby__input"
+                      />
+                    </div>
+
+                    <div className="multiplayer-lobby__password-box space-y-2 sm:col-span-2">
+                      <div className="flex flex-wrap items-center gap-2 sm:grid sm:grid-cols-[auto_1fr] sm:items-end sm:gap-x-4">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <input
+                            type="checkbox"
+                            id="password-protect-room"
+                            checked={passwordProtectRoom}
+                            onChange={(e) =>
+                              setPasswordProtectRoom(e.target.checked)
+                            }
+                            className="multiplayer-lobby__checkbox"
+                          />
+                          <Label
+                            htmlFor="password-protect-room"
+                            className="multiplayer-lobby__label !mb-0 cursor-pointer font-normal"
+                          >
+                            Password protect room
+                          </Label>
+                        </div>
+                        {passwordProtectRoom ? (
+                          <div className="space-y-1.5 w-full min-w-0 sm:max-w-md">
+                            <Label
+                              htmlFor="create-room-pw"
+                              className="multiplayer-lobby__label sr-only sm:not-sr-only"
+                            >
+                              Room password
+                            </Label>
+                            <Input
+                              id="create-room-pw"
+                              type="password"
+                              autoComplete="new-password"
+                              value={createRoomPassword}
+                              onChange={(e) =>
+                                setCreateRoomPassword(e.target.value)
+                              }
+                              className="multiplayer-lobby__input"
+                              placeholder="Room password"
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => void createRoom()}
+                    disabled={isCreating}
+                    className="multiplayer-lobby__cta-primary w-full disabled:opacity-60 disabled:pointer-events-none"
+                  >
+                    {isCreating
+                      ? "CREATING…"
+                      : `CREATE ${config.name.toUpperCase()} ROOM`}
+                  </button>
                 </div>
-              ) : (
-                /* Expanded Mode */
-                selectedGameForDetails && (
-                  <div className="p-6 space-y-6">
-                    <div className="flex items-center gap-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mix-blend-difference text-white"
-                        onClick={handleBrowseGames}
+              );
+            })()}
+          </section>
+        ) : null}
+
+        <section
+          className="multiplayer-lobby__panel"
+          aria-labelledby="join-game-heading"
+        >
+          <MultiplayerLobbyPixelActions
+            joinSuffix={` (${displayRows.length}${
+              anyLobbyFilterActive && totalRoomCount !== displayRows.length
+                ? ` / ${totalRoomCount}`
+                : ""
+            })`}
+            iconSrc={getGameIconSrc()}
+            onCreateClick={() => setCreateGameModalOpen(true)}
+            onRefreshClick={fetchActiveRooms}
+            isRefreshing={isLoadingRooms}
+            refreshTimeText={
+              lastRefreshAt == null
+                ? "—"
+                : formatTimeSinceLastRefresh(refreshAgeMs ?? 0)
+            }
+            refreshToneClass={refreshToneClass}
+            className="mb-4"
+          />
+
+          <div
+            className="multiplayer-lobby__catalog-toolbar mb-4"
+            aria-labelledby="lobby-filters-heading"
+          >
+            <p id="lobby-filters-heading" className="sr-only">
+              Lobby filters
+            </p>
+            <div className="multiplayer-lobby__catalog-toolbar-row">
+              <div className="multiplayer-lobby__filter-group">
+                <span className="multiplayer-lobby__filter-label">Game</span>
+                <div
+                  className="multiplayer-lobby__filter-toggles"
+                  role="group"
+                  aria-label="Filter by game"
+                >
+                  {GAME_ORDER.map((gameKey) => {
+                    const on = selectedFilterGames.has(gameKey);
+                    return (
+                      <button
+                        key={gameKey}
+                        type="button"
+                        className={cn(
+                          "multiplayer-lobby__filter-chip",
+                          on && "multiplayer-lobby__filter-chip--active",
+                        )}
+                        aria-pressed={on}
+                        onClick={() => toggleFilterGame(gameKey)}
                       >
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Browse Games
-                      </Button>
-                    </div>
+                        {gameConfigs[gameKey].name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="multiplayer-lobby__filter-group">
+                <span className="multiplayer-lobby__filter-label">Access</span>
+                <div
+                  className="multiplayer-lobby__filter-toggles"
+                  role="group"
+                  aria-label="Filter by password"
+                >
+                  {(
+                    [
+                      ["all", "All"],
+                      ["open", "Open"],
+                      ["password", "Password"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={cn(
+                        "multiplayer-lobby__filter-chip",
+                        passwordFilter === key &&
+                          "multiplayer-lobby__filter-chip--active",
+                      )}
+                      aria-pressed={passwordFilter === key}
+                      onClick={() => setPasswordFilter(key)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
 
-                    <div className="space-y-6">
-                      {(() => {
-                        const config = gameConfigs[selectedGameForDetails];
-                        return (
-                          <>
-                            <Card className="mt-16">
-                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                  <Settings className="h-5 w-5" />
-                                  Game Settings
-                                </CardTitle>
-                                <CardDescription>
-                                  Configure your game room parameters
-                                </CardDescription>
-                              </CardHeader>
-                              <CardContent className="space-y-6">
-                                <p className="text-muted-foreground">
-                                  {config.details}
-                                </p>
-                                <div className="grid grid-cols-1 gap-4">
-                                  <div className="space-y-2">
-                                    <Label>Number of Players</Label>
-                                    <Select
-                                      value={numPlayers}
-                                      onValueChange={setNumPlayers}
-                                      disabled={
-                                        selectedGameForDetails !== "snake"
-                                      }
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="2">
-                                          2 Players
-                                        </SelectItem>
-                                        {selectedGameForDetails === "snake" && (
-                                          <>
-                                            <SelectItem value="4">
-                                              4 Players
-                                            </SelectItem>
-                                            <SelectItem value="6">
-                                              6 Players
-                                            </SelectItem>
-                                            <SelectItem value="8">
-                                              8 Players
-                                            </SelectItem>
-                                          </>
-                                        )}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <Label>Game Style</Label>
-                                    <Select
-                                      value={selectedStyle}
-                                      onValueChange={setSelectedStyle}
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select style" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {config.styles.map((style) => (
-                                          <SelectItem
-                                            key={style}
-                                            value={style.toLowerCase()}
-                                          >
-                                            {style}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-
-                                  {selectedGameForDetails === "snake" && (
-                                    <div className="space-y-2">
-                                      <Label>Snake Game Type</Label>
-                                      <Select
-                                        value={roomGameType}
-                                        onValueChange={setRoomGameType}
-                                      >
-                                        <SelectTrigger>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="basic">
-                                            Basic
-                                          </SelectItem>
-                                          <SelectItem value="advanced">
-                                            Advanced
-                                          </SelectItem>
-                                          <SelectItem value="future-ideas">
-                                            Future Ideas
-                                          </SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                  )}
-
-                                  {selectedGameForDetails === "snake" && (
-                                    <div className="space-y-2">
-                                      <Label>Game speed (server tick)</Label>
-                                      <Select
-                                        value={snakeTickMs}
-                                        onValueChange={setSnakeTickMs}
-                                      >
-                                        <SelectTrigger>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="100">
-                                            Slow — 100ms
-                                          </SelectItem>
-                                          <SelectItem value="50">
-                                            Normal — 50ms
-                                          </SelectItem>
-                                          <SelectItem value="35">
-                                            Fast — 35ms
-                                          </SelectItem>
-                                          <SelectItem value="25">
-                                            Blitz — 25ms
-                                          </SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                      <p className="text-muted-foreground text-xs">
-                                        Lower milliseconds = faster movement. Set
-                                        when the room is created (host&apos;s first
-                                        connection).
-                                      </p>
-                                    </div>
-                                  )}
-
-                                  <div className="space-y-2">
-                                    <Label>Additional Rules</Label>
-                                    <Input
-                                      value={additionalRules}
-                                      onChange={(e) =>
-                                        setAdditionalRules(e.target.value)
-                                      }
-                                      placeholder="Custom rules (optional)"
-                                    />
-                                  </div>
-
-                                  <div className="space-y-3 rounded-lg border p-4">
-                                    <div className="flex items-center gap-2">
-                                      <input
-                                        type="checkbox"
-                                        id="password-protect-room"
-                                        checked={passwordProtectRoom}
-                                        onChange={(e) =>
-                                          setPasswordProtectRoom(e.target.checked)
-                                        }
-                                        className="h-4 w-4 rounded border"
-                                      />
-                                      <Label
-                                        htmlFor="password-protect-room"
-                                        className="cursor-pointer font-normal"
-                                      >
-                                        Password protect room
-                                      </Label>
-                                    </div>
-                                    {passwordProtectRoom && (
-                                      <div className="space-y-2">
-                                        <Label htmlFor="create-room-pw">
-                                          Room password
-                                        </Label>
-                                        <Input
-                                          id="create-room-pw"
-                                          type="password"
-                                          autoComplete="new-password"
-                                          value={createRoomPassword}
-                                          onChange={(e) =>
-                                            setCreateRoomPassword(
-                                              e.target.value,
-                                            )
-                                          }
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <Button
-                                  onClick={createRoom}
-                                  disabled={isCreating}
-                                  className="w-full"
-                                  size="lg"
-                                >
-                                  {isCreating
-                                    ? "Creating Room..."
-                                    : `Create ${config.name} Room`}
-                                </Button>
-                              </CardContent>
-                            </Card>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                )
+          {lobbyRows.length === 0 ? (
+            <div className="multiplayer-lobby__empty-state">
+              <img
+                src={emptyLobbyIconSrc}
+                alt=""
+                width={80}
+                height={80}
+                className="multiplayer-lobby__empty-state-icon"
+              />
+              {isLoadingRooms ? (
+                <p className="multiplayer-lobby__empty-state-title">
+                  LOADING ROOMS…
+                </p>
+              ) : (
+                <>
+                  <p className="multiplayer-lobby__empty-state-title">
+                    NO ACTIVE ROOMS
+                  </p>
+                  <p className="multiplayer-lobby__empty-state-hint">
+                    Use CREATE GAME to host, or wait for another player to open
+                    a room.
+                  </p>
+                </>
               )}
             </div>
-            <style jsx>{`
-              .cq-right-panel {
-                container-type: inline-size;
-              }
-              @container (min-width: 640px) {
-                .cq-gallery-grid {
-                  grid-template-columns: repeat(2, minmax(0, 1fr));
-                }
-              }
-            `}</style>
+          ) : filteredLobbyRows.length === 0 ? (
+            <div className="text-center py-12 px-2">
+              <p className="multiplayer-lobby__body-text text-base">
+                No rooms match the game filter.
+              </p>
+              <p className="multiplayer-lobby__hint mt-2">
+                Toggle games in the filter bar above, or clear all game toggles
+                to list every room ({totalRoomCount} total).
+              </p>
+            </div>
+          ) : displayRows.length === 0 ? (
+            <div className="text-center py-12 px-2">
+              <p className="multiplayer-lobby__body-text text-base">
+                No rooms match the access filter.
+              </p>
+              <p className="multiplayer-lobby__hint mt-2">
+                Set Access to All, or switch Open / Password to match listed
+                rooms ({filteredLobbyRows.length} in current game selection).
+              </p>
+            </div>
+          ) : (
+            <div className="multiplayer-lobby__table-scroll">
+              <table className="multiplayer-lobby__table">
+                <thead>
+                  <tr>
+                    <th scope="col">Game</th>
+                    <th scope="col">Password</th>
+                    <th scope="col">Room ID</th>
+                    <th scope="col">Players</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Join</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayRows.map(({ game, room }) => {
+                    const rowKey = joinRowKey(game, room.id);
+                    const maxPlayers = gameConfigs[game].maxPlayers;
+                    const locked = !!room.passwordProtected;
+                    const promptOpen = joinPromptKey === rowKey;
+                    const verifying = joinVerifyKey === rowKey;
+                    const rejected = !!joinPasswordRejected[rowKey];
+                    return (
+                      <Fragment key={rowKey}>
+                        <tr
+                          className={cn(
+                            locked
+                              ? "multiplayer-lobby__tr--password"
+                              : "multiplayer-lobby__tr--open",
+                          )}
+                        >
+                          <td>
+                            <Badge
+                              variant="secondary"
+                              className={gameRowBadgeClass(game)}
+                            >
+                              {gameConfigs[game].name}
+                            </Badge>
+                          </td>
+                          <td>
+                            {locked ? (
+                              <Badge
+                                variant="outline"
+                                className="multiplayer-lobby__password-badge gap-1"
+                              >
+                                <Lock
+                                  className="h-3.5 w-3.5 shrink-0"
+                                  aria-hidden
+                                />
+                                Yes
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="multiplayer-lobby__open-badge"
+                              >
+                                No
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="multiplayer-lobby__cell-mono">
+                            {room.id}
+                          </td>
+                          <td>
+                            <span className="inline-flex items-center gap-1 multiplayer-lobby__muted">
+                              <Users className="h-4 w-4 shrink-0" aria-hidden />
+                              {room.playerCount}/{maxPlayers}
+                            </span>
+                          </td>
+                          <td>
+                            <Badge
+                              variant={
+                                room.status === "waiting"
+                                  ? "secondary"
+                                  : "default"
+                              }
+                              className={
+                                room.status === "waiting"
+                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200"
+                                  : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200"
+                              }
+                            >
+                              {room.status}
+                            </Badge>
+                          </td>
+                          <td className="multiplayer-lobby__cell-join">
+                            <button
+                              type="button"
+                              disabled={verifying}
+                              onClick={() =>
+                                void handleLobbyJoinClick(game, room)
+                              }
+                              className="multiplayer-lobby__cta-join w-full min-w-[5.5rem] disabled:opacity-60 disabled:pointer-events-none"
+                            >
+                              {verifying ? "…" : "JOIN"}
+                            </button>
+                          </td>
+                        </tr>
+                        {locked && promptOpen ? (
+                          <tr className="multiplayer-lobby__tr-pw">
+                            <td colSpan={6}>
+                              <div className="multiplayer-lobby__pw-row-inner">
+                                <Label
+                                  htmlFor={`join-pw-${rowKey}`}
+                                  className="multiplayer-lobby__label"
+                                >
+                                  Room password
+                                </Label>
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
+                                  <Input
+                                    id={`join-pw-${rowKey}`}
+                                    type="password"
+                                    name="room-password"
+                                    autoComplete="off"
+                                    autoCorrect="off"
+                                    spellCheck={false}
+                                    aria-invalid={rejected}
+                                    value={joinPasswordDraft[rowKey] ?? ""}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setJoinPasswordDraft((prev) => ({
+                                        ...prev,
+                                        [rowKey]: v,
+                                      }));
+                                      if (rejected) {
+                                        setJoinPasswordRejected((prev) => ({
+                                          ...prev,
+                                          [rowKey]: false,
+                                        }));
+                                      }
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && !verifying) {
+                                        e.preventDefault();
+                                        void handleLobbyJoinClick(game, room);
+                                      }
+                                    }}
+                                    className={cn(
+                                      "multiplayer-lobby__input font-mono text-sm max-w-md",
+                                      rejected &&
+                                        "border-red-500 border-2 ring-2 ring-red-500/35 focus-visible:ring-red-500/50",
+                                    )}
+                                    placeholder="••••••••"
+                                  />
+                                  <button
+                                    type="button"
+                                    className="multiplayer-lobby__ghost-link shrink-0 text-sm"
+                                    onClick={() => {
+                                      setJoinPromptKey(null);
+                                      setJoinPasswordRejected((prev) => ({
+                                        ...prev,
+                                        [rowKey]: false,
+                                      }));
+                                      setJoinPasswordDraft((prev) => {
+                                        const next = { ...prev };
+                                        delete next[rowKey];
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                                <p className="multiplayer-lobby__hint !mb-0 mt-1 text-sm">
+                                  Then tap JOIN in the row above.
+                                </p>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        {createGameModalOpen ? (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-game-modal-title"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setCreateGameModalOpen(false);
+            }}
+          >
+            <div
+              className="multiplayer-lobby__panel max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2
+                id="create-game-modal-title"
+                className="hub__subtitle--pixel mb-4 !text-[clamp(0.42rem,1.55vw,0.55rem)]"
+              >
+                PICK A GAME TO CREATE
+              </h2>
+              <p className="multiplayer-lobby__body-text mb-4">
+                Choose which game you are hosting. Room options appear on the
+                next screen.
+              </p>
+              <div className="grid gap-2">
+                {GAME_ORDER.map((gameKey) => (
+                  <button
+                    key={gameKey}
+                    type="button"
+                    onClick={() => pickGameInCreateModal(gameKey)}
+                    className="multiplayer-lobby__cta-primary w-full"
+                  >
+                    {gameConfigs[gameKey].name.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="multiplayer-lobby__ghost-link mt-4 w-full text-center"
+                onClick={() => setCreateGameModalOpen(false)}
+              >
+                CANCEL
+              </button>
+            </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

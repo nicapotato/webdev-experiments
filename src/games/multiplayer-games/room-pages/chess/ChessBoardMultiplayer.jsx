@@ -127,7 +127,7 @@ const ChessBoardMultiplayer = ({
     const isCaptureMove = isPossible && moveMeta?.isCapture === true;
     const mandatory = isMandatoryPiece(row, col);
 
-    let classes = `flex items-center justify-center cursor-pointer relative `;
+    let classes = `flex items-center justify-center cursor-pointer relative select-none `;
 
     if (isLight) {
       classes += "bg-gray-300 ";
@@ -264,9 +264,9 @@ const ChessBoardMultiplayer = ({
   };
 
   return (
-    <div className="h-full w-full flex justify-center items-center overflow-visible">
+    <div className="h-full w-full flex justify-center items-center overflow-visible select-none">
       <div
-        className="border-8 border-gray-700 shadow-2xl"
+        className="border-8 border-gray-700 shadow-2xl select-none"
         style={{ boxShadow: "0 0 0 4px #000, 0 0 20px rgba(0, 255, 0, 0.2)" }}
       >
         <div className="flex flex-col">{renderBoard()}</div>

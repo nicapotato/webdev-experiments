@@ -1,4 +1,4 @@
-import { r as z, j as o, C as G, S as O, l as Z, m as A } from "./index-BxzNaUpi.js";
+import { r as z, j as o, C as G, S as O, l as Z, m as A } from "./index-CZZOmvhJ.js";
 import { b as P, C as a, p as u } from "./chess-game-multiplayer-XMnaIFi4.js";
 const J = ({ board: _, selectedSquare: b, possibleMoves: c = [], onSquareClick: R, sideImagesWidth: y = 0, isSidebarOpen: S = true, showGrid: I = false, currentPlayerColor: N = null, forcedCapture: p = false, mandatoryPieceSquares: H = [], singleLegalMoveHighlight: E = false, comboContinuePiece: x = null, checkSquare: m = null }) => {
   const [h, $] = z.useState(64), k = () => {
@@ -21,7 +21,7 @@ const J = ({ board: _, selectedSquare: b, possibleMoves: c = [], onSquareClick: 
   }, q = (e, s) => b && u(b, { row: e, col: s }), v = (e, s) => c.some((t) => u(t, { row: e, col: s })), w = (e, s) => c.find((t) => u(t, { row: e, col: s })), B = (e, s) => H.some((t) => u(t, { row: e, col: s })), K = (e, s) => x && x.row === e && x.col === s, C = (e, s) => m && m.row === e && m.col === s, f = (e) => !e || e.type === a.Empty, W = (e, s) => {
     var _a;
     const t = (e + s) % 2 === 0, r = (_a = _[e]) == null ? void 0 : _a[s], l = v(e, s), i = q(e, s), g = w(e, s), d = l && (g == null ? void 0 : g.isCapture) === true, T = B(e, s);
-    let n = "flex items-center justify-center cursor-pointer relative ";
+    let n = "flex items-center justify-center cursor-pointer relative select-none ";
     return t ? n += "bg-gray-300 " : n += "bg-gray-800 ", i ? C(e, s) ? n += "ring-4 ring-red-500 ring-inset shadow-[inset_0_0_14px_rgba(239,68,68,0.55)] " : K(e, s) ? n += "ring-4 ring-orange-400 ring-inset shadow-[inset_0_0_12px_rgba(251,146,60,0.45)] " : n += "ring-4 ring-blue-500 ring-inset " : l ? E && c.length === 1 ? n += "ring-4 ring-amber-400 ring-inset shadow-[inset_0_0_12px_rgba(251,191,36,0.5)] animate-pulse " : p && d ? n += "ring-4 ring-amber-300 ring-inset shadow-[inset_0_0_10px_rgba(252,211,77,0.45)] animate-pulse " : n += "ring-2 ring-green-400 ring-inset " : T && r && !f(r) && !i ? n += "ring-2 ring-orange-400 ring-inset " : C(e, s) && r && !f(r) && !i && (n += "ring-4 ring-red-500 ring-inset shadow-[inset_0_0_14px_rgba(239,68,68,0.45)] "), n;
   }, L = () => ({ width: `${h}px`, height: `${h}px` }), F = (e, s) => {
     var _a;
@@ -37,7 +37,7 @@ const J = ({ board: _, selectedSquare: b, possibleMoves: c = [], onSquareClick: 
     else for (let t = 0; t < 8; t++) e.push(j(t));
     return e;
   };
-  return o.jsx("div", { className: "h-full w-full flex justify-center items-center overflow-visible", children: o.jsx("div", { className: "border-8 border-gray-700 shadow-2xl", style: { boxShadow: "0 0 0 4px #000, 0 0 20px rgba(0, 255, 0, 0.2)" }, children: o.jsx("div", { className: "flex flex-col", children: D() }) }) });
+  return o.jsx("div", { className: "h-full w-full flex justify-center items-center overflow-visible select-none", children: o.jsx("div", { className: "border-8 border-gray-700 shadow-2xl select-none", style: { boxShadow: "0 0 0 4px #000, 0 0 20px rgba(0, 255, 0, 0.2)" }, children: o.jsx("div", { className: "flex flex-col", children: D() }) }) });
 };
 export {
   J as C

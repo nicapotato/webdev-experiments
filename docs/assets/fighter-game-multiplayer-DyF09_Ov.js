@@ -1,20 +1,12 @@
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-import { c as w } from "./grid-3x3-a_VJ9wWf.js";
-import { g as u, a as k } from "./gin-DHzzR3IR.js";
-/**
-* @license lucide-react v1.8.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-const H = [["polyline", { points: "14.5 17.5 3 6 3 3 6 3 17.5 14.5", key: "1hfsw2" }], ["line", { x1: "13", x2: "19", y1: "19", y2: "13", key: "1vrmhu" }], ["line", { x1: "16", x2: "20", y1: "16", y2: "20", key: "1bron3" }], ["line", { x1: "19", x2: "21", y1: "21", y2: "19", key: "13pww6" }], ["polyline", { points: "14.5 6.5 18 3 21 3 21 6 17.5 9.5", key: "hbey2j" }], ["line", { x1: "5", x2: "9", y1: "14", y2: "18", key: "1hf58s" }], ["line", { x1: "7", x2: "4", y1: "17", y2: "20", key: "pidxm4" }], ["line", { x1: "3", x2: "5", y1: "19", y2: "21", key: "1pehsh" }]], W = w("swords", H);
-async function E(e, o, n, r) {
+import { g as u, a as w } from "./gin-DHzzR3IR.js";
+async function H(e, o, n, r) {
   const s = new URLSearchParams({ userId: o, username: encodeURIComponent(n) });
-  return r !== void 0 && r.length > 0 && s.set("password", r), `${k()}/api/fighter/ws/${e}?${s.toString()}`;
+  return r !== void 0 && r.length > 0 && s.set("password", r), `${w()}/api/fighter/ws/${e}?${s.toString()}`;
 }
-async function C() {
+async function k() {
   try {
     const e = await fetch(`${u()}/api/fighter/active-rooms`);
     if (!e.ok) throw new Error("Failed to fetch active fighter rooms");
@@ -23,21 +15,21 @@ async function C() {
     return console.error("Error fetching active fighter rooms:", e), [];
   }
 }
-function A(e) {
+function b(e) {
   return /^[a-zA-Z0-9_-]+$/.test(e) && e.length > 0 && e.length <= 50;
 }
-function R() {
+function I() {
   return `fighter_${Math.random().toString(36).substr(2, 9)}`;
 }
-const i = 1024, a = 576, y = {};
+const i = 1024, a = 576, g = {};
 function p(e) {
-  if (!y[e]) {
+  if (!g[e]) {
     const o = new Image();
-    o.src = e, y[e] = o;
+    o.src = e, g[e] = o;
   }
-  return y[e];
+  return g[e];
 }
-function N(e, o, n = false) {
+function W(e, o, n = false) {
   e.fillStyle = "#000000", e.fillRect(0, 0, i, a);
   const r = p("/games/fighting-game/img/background.png");
   r.complete && e.drawImage(r, 0, 0, i, a);
@@ -52,16 +44,16 @@ function N(e, o, n = false) {
     if (t.dead || !t.position) return;
     const c = p(t.imageSrc);
     if (c.complete && t.framesMax > 0) {
-      const m = c.width / t.framesMax, g = c.height;
-      e.drawImage(c, t.framesCurrent * m, 0, m, g, t.position.x - (((_a = t.offset) == null ? void 0 : _a.x) || 0), t.position.y - (((_b = t.offset) == null ? void 0 : _b.y) || 0), m * (t.scale || 1), g * (t.scale || 1));
+      const m = c.width / t.framesMax, S = c.height;
+      e.drawImage(c, t.framesCurrent * m, 0, m, S, t.position.x - (((_a = t.offset) == null ? void 0 : _a.x) || 0), t.position.y - (((_b = t.offset) == null ? void 0 : _b.y) || 0), m * (t.scale || 1), S * (t.scale || 1));
     } else e.fillStyle = t.color || "#ff0000", e.fillRect(t.position.x, t.position.y, t.width || 50, t.height || 150);
     const l = 50, d = 5, h = t.position.x + ((t.width || 50) - l) / 2, f = t.position.y - 15;
     e.fillStyle = "#333333", e.fillRect(h, f, l, d), e.fillStyle = "#00ff00";
-    const S = (t.health || 0) / (t.maxHealth || 100) * l;
-    e.fillRect(h, f, S, d), e.strokeStyle = "#ffffff", e.lineWidth = 1, e.strokeRect(h, f, l, d), t.isAttacking && t.framesCurrent >= 3 && t.attackBox && (e.strokeStyle = "#ff0000", e.lineWidth = 2, e.strokeRect(t.position.x + (((_c = t.attackBox.offset) == null ? void 0 : _c.x) || 0), t.position.y + (((_d = t.attackBox.offset) == null ? void 0 : _d.y) || 0), t.attackBox.width || 0, t.attackBox.height || 0));
+    const y = (t.health || 0) / (t.maxHealth || 100) * l;
+    e.fillRect(h, f, y, d), e.strokeStyle = "#ffffff", e.lineWidth = 1, e.strokeRect(h, f, l, d), t.isAttacking && t.framesCurrent >= 3 && t.attackBox && (e.strokeStyle = "#ff0000", e.lineWidth = 2, e.strokeRect(t.position.x + (((_c = t.attackBox.offset) == null ? void 0 : _c.x) || 0), t.position.y + (((_d = t.attackBox.offset) == null ? void 0 : _d.y) || 0), t.attackBox.width || 0, t.attackBox.height || 0));
   }), o.status === "waiting" ? (e.fillStyle = "rgba(0, 0, 0, 0.7)", e.fillRect(0, 0, i, a), e.fillStyle = "#ffffff", e.font = "24px Arial", e.textAlign = "center", e.fillText("Waiting for another player...", i / 2, a / 2)) : o.status === "finished" && (e.fillStyle = "rgba(0, 0, 0, 0.8)", e.fillRect(0, 0, i, a), e.fillStyle = "#ffffff", e.font = "24px Arial", e.textAlign = "center", e.fillText("Game Over!", i / 2, a / 2 - 20), o.winner && e.fillText(`Winner: ${o.winner}`, i / 2, a / 2 + 20), e.font = "12px Arial", e.fillStyle = "#cccccc", e.fillText("PLAY AGAIN in the bar above", i / 2, a / 2 + 52));
 }
-class O {
+class C {
   constructor(o, n, r, s) {
     __publicField(this, "ws", null);
     __publicField(this, "roomId");
@@ -79,7 +71,7 @@ class O {
   async connect() {
     return new Promise(async (o, n) => {
       try {
-        const r = await E(this.roomId, this.userId, this.username, this.roomPassword);
+        const r = await H(this.roomId, this.userId, this.username, this.roomPassword);
         console.log("Connecting to fighter game:", r), this.ws = new WebSocket(r), this.ws.onopen = () => {
           console.log(`Connected to fighter game ${this.roomId} as ${this.username}`), this.reconnectAttempts = 0, this.notifyConnectionHandlers(true), o();
         }, this.ws.onmessage = (s) => {
@@ -204,11 +196,10 @@ class O {
 }
 export {
   i as C,
-  O as F,
-  W as S,
-  R as a,
+  C as F,
+  I as a,
   a as b,
-  C as g,
-  N as r,
-  A as v
+  k as g,
+  W as r,
+  b as v
 };

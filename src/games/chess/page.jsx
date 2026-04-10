@@ -33,6 +33,7 @@ const ChessPage = () => {
     boxShadow: isActive
       ? "0 0 0 2px #000, inset 0 0 0 1px #000, 0 0 28px rgba(250, 204, 21, 0.55)"
       : "0 0 0 2px #000, inset 0 0 0 1px #000",
+    WebkitUserDrag: "none",
   });
 
   function initializeBoard() {
@@ -573,7 +574,7 @@ const ChessPage = () => {
       <div className="flex flex-1 overflow-hidden">
         {/* Chess Area: Side images flanking the board */}
         <div
-          className="flex-1 flex items-center justify-center py-0 px-2 overflow-visible gap-6"
+          className="flex-1 flex items-center justify-center py-0 px-2 overflow-visible gap-6 select-none"
           style={{
             height: "100vh",
             paddingTop: isSidebarOpen ? 0 : 5,
@@ -584,6 +585,7 @@ const ChessPage = () => {
           <img
             src="/games/chess/dark-cat.jpg"
             alt="Black player"
+            draggable={false}
             className={`object-cover object-center border-4 transition-[filter,box-shadow] duration-200 ${gameState.currentPlayer === "black" ? "border-yellow-300" : "border-gray-700"}`}
             style={sidePortraitStyle(gameState.currentPlayer === "black")}
           />
@@ -605,6 +607,7 @@ const ChessPage = () => {
           <img
             src="/games/chess/light-cat.jpg"
             alt="White player"
+            draggable={false}
             className={`object-cover object-center border-4 transition-[filter,box-shadow] duration-200 ${gameState.currentPlayer === "white" ? "border-yellow-300" : "border-gray-700"}`}
             style={sidePortraitStyle(gameState.currentPlayer === "white")}
           />

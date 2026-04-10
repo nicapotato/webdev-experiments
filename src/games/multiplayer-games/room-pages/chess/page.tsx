@@ -398,7 +398,7 @@ export default function ChessGamePage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Chess Area: Side images flanking the board */}
         <div
-          className="flex-1 flex items-center justify-center py-0 px-2 overflow-visible gap-6"
+          className="flex-1 flex items-center justify-center py-0 px-2 overflow-visible gap-6 select-none"
           style={{
             height: "100vh",
             paddingTop: isSidebarOpen ? 0 : 5,
@@ -417,11 +417,13 @@ export default function ChessGamePage() {
                 ? "White player"
                 : "Black player"
             }
+            draggable={false}
             className={`object-cover object-center border-4 ${gameState?.currentPlayer === (currentPlayer?.color === ChessColor.Black ? ChessColor.White : ChessColor.Black) ? "border-yellow-400" : "border-gray-700"}`}
             style={{
               height: `calc(100vh${isSidebarOpen ? "" : " - 10px"})`,
               width: SIDE_IMAGE_WIDTH,
               boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
+              WebkitUserDrag: "none",
             }}
           />
 
@@ -452,11 +454,13 @@ export default function ChessGamePage() {
                 ? "Black player"
                 : "White player"
             }
+            draggable={false}
             className={`object-cover object-center border-4 ${gameState?.currentPlayer === currentPlayer?.color ? "border-yellow-400" : "border-gray-700"}`}
             style={{
               height: `calc(100vh${isSidebarOpen ? "" : " - 10px"})`,
               width: SIDE_IMAGE_WIDTH,
               boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
+              WebkitUserDrag: "none",
             }}
           />
         </div>

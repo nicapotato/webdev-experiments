@@ -15,36 +15,13 @@ export type HubEntry =
       path: string
     }
 
-export const HUB_ENTRIES: HubEntry[] = [
-  {
-    id: 'fighting-game',
-    title: 'Fighting game',
-    kind: 'iframe',
-    href: '/games/fighting-game/index.html',
-  },
-  {
-    id: 'kings-and-pigs',
-    title: 'Kings and pigs',
-    kind: 'iframe',
-    href: '/games/kings-and-pigs/index.html',
-  },
+/** Original work and experiments (not from Chris Courses tutorials). */
+export const HUB_PERSONAL_ENTRIES: HubEntry[] = [
   {
     id: 'motherload',
     title: 'Motherload',
     kind: 'react',
     path: '/motherload',
-  },
-  {
-    id: 'sunnyland',
-    title: 'Sunnyland platformer',
-    kind: 'iframe',
-    href: '/games/sunnyland-platformer/index.html',
-  },
-  {
-    id: 'tower-defense',
-    title: 'Tower defense',
-    kind: 'iframe',
-    href: '/games/tower-defense/index.html',
   },
   {
     id: 'checkers',
@@ -65,12 +42,6 @@ export const HUB_ENTRIES: HubEntry[] = [
     href: '/games/minesweeper/index.html',
   },
   {
-    id: 'multiplayer',
-    title: 'Multiplayer games',
-    kind: 'react',
-    path: '/multiplayer',
-  },
-  {
     id: 'snake',
     title: 'Snake',
     kind: 'react',
@@ -82,4 +53,45 @@ export const HUB_ENTRIES: HubEntry[] = [
     kind: 'react',
     path: '/typing',
   },
+]
+
+/** Hub cards for multiplayer — all open the lobby; game filters are set only in the lobby. */
+export const HUB_MULTIPLAYER_ENTRIES: { id: string; title: string }[] = [
+  { id: 'mp-snake', title: 'Snake' },
+  { id: 'mp-chess', title: 'Chess' },
+  { id: 'mp-checkers', title: 'Checkers' },
+  { id: 'mp-fighter', title: 'Fighter' },
+]
+
+/** Canvas / JS game demos built from Chris Courses tutorials on YouTube. */
+export const HUB_CHRIS_COURSES_ENTRIES: HubEntry[] = [
+  {
+    id: 'fighting-game',
+    title: 'Fighting game',
+    kind: 'iframe',
+    href: '/games/fighting-game/index.html',
+  },
+  {
+    id: 'kings-and-pigs',
+    title: 'Kings and pigs',
+    kind: 'iframe',
+    href: '/games/kings-and-pigs/index.html',
+  },
+  {
+    id: 'sunnyland',
+    title: 'Sunnyland platformer',
+    kind: 'iframe',
+    href: '/games/sunnyland-platformer/index.html',
+  },
+  {
+    id: 'tower-defense',
+    title: 'Tower defense',
+    kind: 'iframe',
+    href: '/games/tower-defense/index.html',
+  },
+]
+
+export const HUB_ENTRIES: HubEntry[] = [
+  ...HUB_PERSONAL_ENTRIES,
+  ...HUB_CHRIS_COURSES_ENTRIES,
 ]
