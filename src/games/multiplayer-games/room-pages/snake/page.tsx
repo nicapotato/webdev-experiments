@@ -32,6 +32,7 @@ import {
   renderGame,
 } from "@/games/multiplayer-games/snake/snake-game-multiplayer";
 import { getCurrentPlayer } from "@/lib/player-utils";
+import { multiplayerShareUrl } from "@/lib/multiplayer-share-url";
 
 export default function SnakeGamePage() {
   const navigate = useNavigate();
@@ -254,10 +255,11 @@ export default function SnakeGamePage() {
   // Copy shareable link to clipboard
   const copyRoomId = async () => {
     try {
-      const shareableLink = `${window.location.origin}/console/learning/games/multiplayer-games/${roomId}/snake`;
-      await navigator.clipboard.writeText(shareableLink);
+      await navigator.clipboard.writeText(
+        multiplayerShareUrl(roomId, "snake"),
+      );
       toast.success("Shareable link copied to clipboard");
-    } catch (error) {
+    } catch {
       toast.error("Failed to copy shareable link");
     }
   };

@@ -38,6 +38,7 @@ import {
   BOARD_SIZE,
 } from "@/games/multiplayer-games/checkers/checkers-game-multiplayer";
 import { getCurrentPlayer } from "@/lib/player-utils";
+import { multiplayerShareUrl } from "@/lib/multiplayer-share-url";
 
 export default function CheckersGamePage() {
   const navigate = useNavigate();
@@ -508,10 +509,11 @@ export default function CheckersGamePage() {
   // Copy shareable link to clipboard
   const copyRoomId = async () => {
     try {
-      const shareableLink = `${window.location.origin}/console/games/multiplayer-games/${roomId}/checkers`;
-      await navigator.clipboard.writeText(shareableLink);
+      await navigator.clipboard.writeText(
+        multiplayerShareUrl(roomId, "checkers"),
+      );
       toast.success("Shareable link copied to clipboard");
-    } catch (error) {
+    } catch {
       toast.error("Failed to copy shareable link");
     }
   };

@@ -1,40 +1,36 @@
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-import { g as c, a as i } from "./gin-DHzzR3IR.js";
-async function l(t, e, r) {
-  const o = new URLSearchParams({ userId: e, username: encodeURIComponent(r) });
-  return `${i()}/api/chess/ws/${t}?${o.toString()}`;
+import { g as a, a as c } from "./gin-DHzzR3IR.js";
+async function i(e, t, r) {
+  const o = new URLSearchParams({ userId: t, username: encodeURIComponent(r) });
+  return `${c()}/api/chess/ws/${e}?${o.toString()}`;
 }
-async function u() {
+async function m() {
   try {
-    const t = await fetch(`${c()}/api/chess/active-rooms`);
-    if (!t.ok) throw new Error("Failed to fetch active rooms");
-    return (await t.json()).rooms || [];
-  } catch (t) {
-    return console.error("Error fetching active chess rooms:", t), [];
+    const e = await fetch(`${a()}/api/chess/active-rooms`);
+    if (!e.ok) throw new Error("Failed to fetch active rooms");
+    return (await e.json()).rooms || [];
+  } catch (e) {
+    return console.error("Error fetching active chess rooms:", e), [];
   }
 }
-var h = ((t) => (t[t.Empty = 0] = "Empty", t[t.Pawn = 1] = "Pawn", t[t.Rook = 2] = "Rook", t[t.Knight = 3] = "Knight", t[t.Bishop = 4] = "Bishop", t[t.Queen = 5] = "Queen", t[t.King = 6] = "King", t))(h || {}), d = ((t) => (t[t.NoColor = 0] = "NoColor", t[t.White = 1] = "White", t[t.Black = 2] = "Black", t))(d || {});
-function f(t) {
-  return /^[a-zA-Z0-9_-]+$/.test(t) && t.length > 0 && t.length <= 50;
+var l = ((e) => (e[e.Empty = 0] = "Empty", e[e.Pawn = 1] = "Pawn", e[e.Rook = 2] = "Rook", e[e.Knight = 3] = "Knight", e[e.Bishop = 4] = "Bishop", e[e.Queen = 5] = "Queen", e[e.King = 6] = "King", e))(l || {}), h = ((e) => (e[e.NoColor = 0] = "NoColor", e[e.White = 1] = "White", e[e.Black = 2] = "Black", e))(h || {});
+function u(e) {
+  return /^[a-zA-Z0-9_-]+$/.test(e) && e.length > 0 && e.length <= 50;
 }
-function g() {
+function f() {
   return `chess_${Math.random().toString(36).substr(2, 9)}`;
 }
-const a = 8;
-function w(t) {
+function g(e) {
   var _a;
-  return t.type === 0 ? "" : ((_a = { 6: { 1: "\u2654", 2: "\u265A" }, 5: { 1: "\u2655", 2: "\u265B" }, 2: { 1: "\u2656", 2: "\u265C" }, 4: { 1: "\u2657", 2: "\u265D" }, 3: { 1: "\u2658", 2: "\u265E" }, 1: { 1: "\u2659", 2: "\u265F" } }[t.type]) == null ? void 0 : _a[t.color]) || "";
+  return e.type === 0 ? "" : ((_a = { 6: { 1: "\u2654", 2: "\u265A" }, 5: { 1: "\u2655", 2: "\u265B" }, 2: { 1: "\u2656", 2: "\u265C" }, 4: { 1: "\u2657", 2: "\u265D" }, 3: { 1: "\u2658", 2: "\u265E" }, 1: { 1: "\u2659", 2: "\u265F" } }[e.type]) == null ? void 0 : _a[e.color]) || "";
 }
-function S(t) {
-  return t.row >= 0 && t.row < a && t.col >= 0 && t.col < a;
+function w(e, t) {
+  return e.row === t.row && e.col === t.col;
 }
-function E(t, e) {
-  return t.row === e.row && t.col === e.col;
-}
-function H(t) {
-  switch (t) {
+function S(e) {
+  switch (e) {
     case 1:
       return "White";
     case 2:
@@ -43,8 +39,8 @@ function H(t) {
       return "None";
   }
 }
-class y {
-  constructor(e, r, o) {
+class E {
+  constructor(t, r, o) {
     __publicField(this, "ws", null);
     __publicField(this, "roomId");
     __publicField(this, "userId");
@@ -55,14 +51,14 @@ class y {
     __publicField(this, "gameStateHandlers", []);
     __publicField(this, "connectionHandlers", []);
     __publicField(this, "errorHandlers", []);
-    this.roomId = e, this.userId = r, this.username = o;
+    this.roomId = t, this.userId = r, this.username = o;
   }
   async connect() {
-    return new Promise(async (e, r) => {
+    return new Promise(async (t, r) => {
       try {
-        const o = await l(this.roomId, this.userId, this.username);
+        const o = await i(this.roomId, this.userId, this.username);
         console.log("Connecting to chess game:", o), this.ws = new WebSocket(o), this.ws.onopen = () => {
-          console.log(`Connected to chess game ${this.roomId} as ${this.username}`), this.reconnectAttempts = 0, this.notifyConnectionHandlers(true), e();
+          console.log(`Connected to chess game ${this.roomId} as ${this.username}`), this.reconnectAttempts = 0, this.notifyConnectionHandlers(true), t();
         }, this.ws.onmessage = (n) => {
           try {
             const s = JSON.parse(n.data);
@@ -86,19 +82,19 @@ class y {
   }
   attemptReconnect() {
     this.reconnectAttempts++;
-    const e = this.reconnectInterval * Math.pow(2, this.reconnectAttempts - 1);
-    console.log(`Attempting to reconnect to chess game ${this.roomId} in ${e}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`), setTimeout(() => {
+    const t = this.reconnectInterval * Math.pow(2, this.reconnectAttempts - 1);
+    console.log(`Attempting to reconnect to chess game ${this.roomId} in ${t}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`), setTimeout(() => {
       this.connect().catch((r) => {
         console.error("Reconnection failed:", r), this.notifyErrorHandlers(new Error("Failed to reconnect"));
       });
-    }, e);
+    }, t);
   }
-  sendMove(e) {
+  sendMove(t) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not connected"), this.notifyErrorHandlers(new Error("WebSocket is not connected"));
       return;
     }
-    const r = { move: { from: { row: e.from.row, col: e.from.col }, to: { row: e.to.row, col: e.to.col }, ...e.promotion && { promotion: this.getPieceTypeString(e.promotion) } } };
+    const r = { move: { from: { row: t.from.row, col: t.from.col }, to: { row: t.to.row, col: t.to.col }, ...t.promotion && { promotion: this.getPieceTypeString(t.promotion) } } };
     try {
       this.ws.send(JSON.stringify(r));
     } catch (o) {
@@ -110,9 +106,9 @@ class y {
       console.error("WebSocket is not connected"), this.notifyErrorHandlers(new Error("WebSocket is not connected"));
       return;
     }
-    const e = { action: "restart" };
+    const t = { action: "restart" };
     try {
-      this.ws.send(JSON.stringify(e));
+      this.ws.send(JSON.stringify(t));
     } catch (r) {
       console.error("Failed to send restart request:", r), this.notifyErrorHandlers(new Error("Failed to send restart request"));
     }
@@ -124,49 +120,49 @@ class y {
     var _a;
     return ((_a = this.ws) == null ? void 0 : _a.readyState) === WebSocket.OPEN;
   }
-  onGameState(e) {
-    this.gameStateHandlers.push(e);
+  onGameState(t) {
+    this.gameStateHandlers.push(t);
   }
-  removeGameStateHandler(e) {
-    const r = this.gameStateHandlers.indexOf(e);
+  removeGameStateHandler(t) {
+    const r = this.gameStateHandlers.indexOf(t);
     r > -1 && this.gameStateHandlers.splice(r, 1);
   }
-  onConnection(e) {
-    this.connectionHandlers.push(e);
+  onConnection(t) {
+    this.connectionHandlers.push(t);
   }
-  removeConnectionHandler(e) {
-    const r = this.connectionHandlers.indexOf(e);
+  removeConnectionHandler(t) {
+    const r = this.connectionHandlers.indexOf(t);
     r > -1 && this.connectionHandlers.splice(r, 1);
   }
-  onError(e) {
-    this.errorHandlers.push(e);
+  onError(t) {
+    this.errorHandlers.push(t);
   }
-  removeErrorHandler(e) {
-    const r = this.errorHandlers.indexOf(e);
+  removeErrorHandler(t) {
+    const r = this.errorHandlers.indexOf(t);
     r > -1 && this.errorHandlers.splice(r, 1);
   }
-  notifyGameStateHandlers(e) {
+  notifyGameStateHandlers(t) {
     this.gameStateHandlers.forEach((r) => {
       try {
-        r(e);
+        r(t);
       } catch (o) {
         console.error("Error in game state handler:", o);
       }
     });
   }
-  notifyConnectionHandlers(e) {
+  notifyConnectionHandlers(t) {
     this.connectionHandlers.forEach((r) => {
       try {
-        r(e);
+        r(t);
       } catch (o) {
         console.error("Error in connection handler:", o);
       }
     });
   }
-  notifyErrorHandlers(e) {
+  notifyErrorHandlers(t) {
     this.errorHandlers.forEach((r) => {
       try {
-        r(e);
+        r(t);
       } catch (o) {
         console.error("Error in error handler:", o);
       }
@@ -187,8 +183,8 @@ class y {
         return "UNKNOWN";
     }
   }
-  getPieceTypeString(e) {
-    switch (e) {
+  getPieceTypeString(t) {
+    switch (t) {
       case 5:
         return "queen";
       case 2:
@@ -203,15 +199,13 @@ class y {
   }
 }
 export {
-  a as B,
-  h as C,
-  g as a,
-  d as b,
-  H as c,
-  w as d,
-  y as e,
-  u as g,
-  S as i,
-  E as p,
-  f as v
+  l as C,
+  f as a,
+  h as b,
+  S as c,
+  g as d,
+  E as e,
+  m as g,
+  w as p,
+  u as v
 };

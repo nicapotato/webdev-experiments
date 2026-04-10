@@ -310,6 +310,13 @@ export function renderFighterGame(
         CANVAS_HEIGHT / 2 + 20,
       );
     }
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#cccccc";
+    ctx.fillText(
+      "PLAY AGAIN in the bar above",
+      CANVAS_WIDTH / 2,
+      CANVAS_HEIGHT / 2 + 52,
+    );
   }
 }
 
@@ -427,6 +434,21 @@ export class FighterGameClient {
     } catch (error) {
       console.error("Failed to send input:", error);
       this.notifyErrorHandlers(new Error("Failed to send input"));
+    }
+  }
+
+  /** Ask the server to reset the match (same room, both players must still be connected). */
+  sendRestart(): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not connected");
+      this.notifyErrorHandlers(new Error("WebSocket is not connected"));
+      return;
+    }
+    try {
+      this.ws.send(JSON.stringify({ action: "restart" }));
+    } catch (error) {
+      console.error("Failed to send restart:", error);
+      this.notifyErrorHandlers(new Error("Failed to send restart"));
     }
   }
 

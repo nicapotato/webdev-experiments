@@ -1,5 +1,5 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/SnakeSinglePlayerPage-B3bk5GW6.js","assets/button-DEm5cEaQ.js","assets/play-DgzCMp61.js","assets/grid-3x3-CyhlQYng.js","assets/snake-game-multiplayer-COxn6obF.js","assets/gin-DHzzR3IR.js","assets/TypingPage-e6cBSfQ7.js","assets/page-CVXPpEuL.js","assets/chess-game-multiplayer-DB5exR2Z.js","assets/checkers-game-multiplayer-CFO-YGq1.js","assets/fighter-game-multiplayer-CSJI2MQX.js","assets/users-BVSUSNhu.js","assets/page-C5KCGQxk.js","assets/player-utils-sDKa8flh.js","assets/wifi-Cpkg8YYW.js","assets/page-BN26O1Ua.js","assets/ChessBoardMultiplayer-Dg9aZ6Hn.js","assets/page-DYMXoWE4.js","assets/page-Cip4vD9G.js"])))=>i.map(i=>d[i]);
-let $1, H, K1, Nl, id, mb, ty, mv, tb, J1, eb, k1, E, b, yb, u0, hb;
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/SnakeSinglePlayerPage-D0GhRXE_.js","assets/button-52dtC3UY.js","assets/play-BVx9uMwz.js","assets/grid-3x3-DlLMeids.js","assets/snake-game-multiplayer-CX_c9lTO.js","assets/gin-DHzzR3IR.js","assets/rotate-ccw-jsALlNl_.js","assets/TypingPage-D8oInFYj.js","assets/page-CAgeSnYs.js","assets/chess-game-multiplayer-Dq-vq7HR.js","assets/checkers-game-multiplayer-CFO-YGq1.js","assets/fighter-game-multiplayer-DYsUuTBf.js","assets/users-BuTQtawT.js","assets/page-CTN3FCvu.js","assets/multiplayer-share-url-BDInfhC3.js","assets/wifi-CShB5cPf.js","assets/page-CR2L4KZh.js","assets/ChessBoardMultiplayer-DYmXEw6f.js","assets/page--II635Ql.js","assets/page-CAS2fG6h.js"])))=>i.map(i=>d[i]);
+let $1, H, K1, Nl, id, mb, ty, mv, g0, Ge, eb, tb, jl, E, J1, k1, b, yb, u0, hb;
 let __tla = (async () => {
   function N0(t, e) {
     for (var l = 0; l < e.length; l++) {
@@ -11599,11 +11599,11 @@ Please change the parent <Route path="${R}"> to <Route path="${R === "/" ? "*" :
       })
     });
   };
-  function g0(t) {
+  g0 = function(t) {
     return t.map((e) => [
       ...e
     ]);
-  }
+  };
   const Yf = () => ({
     white: {
       kingSide: true,
@@ -11676,13 +11676,13 @@ Please change the parent <Route path="${R}"> to <Route path="${R === "/" ? "*" :
         return false;
     }
   }
-  function Ge(t, e, l, a) {
+  Ge = function(t, e, l, a) {
     for (let n = 0; n < 8; n++) for (let u = 0; u < 8; u++) {
       const i = t[n][u];
       if (i && i.color === a && P1(t, n, u, e, l)) return true;
     }
     return false;
-  }
+  };
   function v0(t, e) {
     for (let l = 0; l < 8; l++) for (let a = 0; a < 8; a++) {
       const n = t[l][a];
@@ -11693,12 +11693,12 @@ Please change the parent <Route path="${R}"> to <Route path="${R === "/" ? "*" :
     }
     return null;
   }
-  function jl(t, e) {
+  jl = function(t, e) {
     const l = v0(e, t);
     if (!l) return false;
     const a = t === "white" ? "black" : "white";
     return Ge(e, l.row, l.col, a);
-  }
+  };
   function Qf(t, e, l, a) {
     const n = g0(t), u = n[e.row][e.col], i = n[l.row][l.col];
     if (u.type === "king" && Math.abs(l.col - e.col) === 2) {
@@ -13123,12 +13123,12 @@ Please change the parent <Route path="${R}"> to <Route path="${R === "/" ? "*" :
         })
       ]
     });
-  }, ab = b.lazy(() => Nl(() => import("./page-DORG_XLs.js").then(async (m) => {
+  }, ab = b.lazy(() => Nl(() => import("./page-lPNY8cIw.js").then(async (m) => {
     await m.__tla;
     return m;
-  }), [])), nb = b.lazy(() => Nl(() => import("./SnakeSinglePlayerPage-B3bk5GW6.js"), __vite__mapDeps([0,1,2,3,4,5])).then((t) => ({
+  }), [])), nb = b.lazy(() => Nl(() => import("./SnakeSinglePlayerPage-D0GhRXE_.js"), __vite__mapDeps([0,1,2,3,4,5,6])).then((t) => ({
     default: t.default
-  }))), ub = b.lazy(() => Nl(() => import("./TypingPage-e6cBSfQ7.js"), __vite__mapDeps([6,1]))), ib = b.lazy(() => Nl(() => import("./page-CVXPpEuL.js"), __vite__mapDeps([7,1,2,3,4,5,8,9,10,11]))), cb = b.lazy(() => Nl(() => import("./page-C5KCGQxk.js"), __vite__mapDeps([12,1,4,5,13,3,11,14]))), sb = b.lazy(() => Nl(() => import("./page-BN26O1Ua.js"), __vite__mapDeps([15,16,8,5,13]))), rb = b.lazy(() => Nl(() => import("./page-DYMXoWE4.js"), __vite__mapDeps([17,16,8,5,9,13]))), ob = b.lazy(() => Nl(() => import("./page-Cip4vD9G.js"), __vite__mapDeps([18,1,10,3,5,13,14,11])));
+  }))), ub = b.lazy(() => Nl(() => import("./TypingPage-D8oInFYj.js"), __vite__mapDeps([7,1]))), ib = b.lazy(() => Nl(() => import("./page-CAgeSnYs.js"), __vite__mapDeps([8,1,2,3,4,5,9,10,11,12]))), cb = b.lazy(() => Nl(() => import("./page-CTN3FCvu.js"), __vite__mapDeps([13,1,4,3,5,14,12,15]))), sb = b.lazy(() => Nl(() => import("./page-CR2L4KZh.js"), __vite__mapDeps([16,17,9,5,14]))), rb = b.lazy(() => Nl(() => import("./page--II635Ql.js"), __vite__mapDeps([18,17,9,5,10,14]))), ob = b.lazy(() => Nl(() => import("./page-CAS2fG6h.js"), __vite__mapDeps([19,1,14,11,3,5,15,6,12])));
   function fb() {
     return E.jsxs(f1, {
       attribute: "class",
@@ -13242,11 +13242,14 @@ export {
   mb as b,
   ty as c,
   mv as d,
-  tb as e,
-  J1 as f,
+  g0 as e,
+  Ge as f,
   eb as g,
-  k1 as h,
+  tb as h,
+  jl as i,
   E as j,
+  J1 as k,
+  k1 as l,
   b as r,
   yb as t,
   u0 as u,

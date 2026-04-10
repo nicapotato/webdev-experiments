@@ -34,6 +34,7 @@ import {
   type ChessMoveHint,
 } from "@/games/chess/chess-multiplayer-legal";
 import { getCurrentPlayer } from "@/lib/player-utils";
+import { multiplayerShareUrl } from "@/lib/multiplayer-share-url";
 
 export default function ChessGamePage() {
   const navigate = useNavigate();
@@ -313,10 +314,11 @@ export default function ChessGamePage() {
   // Copy shareable link to clipboard
   const copyRoomId = async () => {
     try {
-      const shareableLink = `${window.location.origin}/console/learning/games/multiplayer-games/${roomId}/chess`;
-      await navigator.clipboard.writeText(shareableLink);
+      await navigator.clipboard.writeText(
+        multiplayerShareUrl(roomId, "chess"),
+      );
       toast.success("Shareable link copied to clipboard");
-    } catch (error) {
+    } catch {
       toast.error("Failed to copy shareable link");
     }
   };

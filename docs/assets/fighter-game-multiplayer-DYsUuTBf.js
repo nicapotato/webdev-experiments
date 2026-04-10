@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-import { c as u } from "./grid-3x3-CyhlQYng.js";
+import { c as u } from "./grid-3x3-DlLMeids.js";
 import { g as w, a as k } from "./gin-DHzzR3IR.js";
 /**
 * @license lucide-react v1.8.0 - ISC
@@ -9,12 +9,12 @@ import { g as w, a as k } from "./gin-DHzzR3IR.js";
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-const H = [["polyline", { points: "14.5 17.5 3 6 3 3 6 3 17.5 14.5", key: "1hfsw2" }], ["line", { x1: "13", x2: "19", y1: "19", y2: "13", key: "1vrmhu" }], ["line", { x1: "16", x2: "20", y1: "16", y2: "20", key: "1bron3" }], ["line", { x1: "19", x2: "21", y1: "21", y2: "19", key: "13pww6" }], ["polyline", { points: "14.5 6.5 18 3 21 3 21 6 17.5 9.5", key: "hbey2j" }], ["line", { x1: "5", x2: "9", y1: "14", y2: "18", key: "1hf58s" }], ["line", { x1: "7", x2: "4", y1: "17", y2: "20", key: "pidxm4" }], ["line", { x1: "3", x2: "5", y1: "19", y2: "21", key: "1pehsh" }]], C = u("swords", H);
+const H = [["polyline", { points: "14.5 17.5 3 6 3 3 6 3 17.5 14.5", key: "1hfsw2" }], ["line", { x1: "13", x2: "19", y1: "19", y2: "13", key: "1vrmhu" }], ["line", { x1: "16", x2: "20", y1: "16", y2: "20", key: "1bron3" }], ["line", { x1: "19", x2: "21", y1: "21", y2: "19", key: "13pww6" }], ["polyline", { points: "14.5 6.5 18 3 21 3 21 6 17.5 9.5", key: "hbey2j" }], ["line", { x1: "5", x2: "9", y1: "14", y2: "18", key: "1hf58s" }], ["line", { x1: "7", x2: "4", y1: "17", y2: "20", key: "pidxm4" }], ["line", { x1: "3", x2: "5", y1: "19", y2: "21", key: "1pehsh" }]], W = u("swords", H);
 async function E(e, n, o) {
   const r = new URLSearchParams({ userId: n, username: encodeURIComponent(o) });
   return `${k()}/api/fighter/ws/${e}?${r.toString()}`;
 }
-async function W() {
+async function C() {
   try {
     const e = await fetch(`${w()}/api/fighter/active-rooms`);
     if (!e.ok) throw new Error("Failed to fetch active fighter rooms");
@@ -23,10 +23,10 @@ async function W() {
     return console.error("Error fetching active fighter rooms:", e), [];
   }
 }
-function R(e) {
+function A(e) {
   return /^[a-zA-Z0-9_-]+$/.test(e) && e.length > 0 && e.length <= 50;
 }
-function A() {
+function R() {
   return `fighter_${Math.random().toString(36).substr(2, 9)}`;
 }
 const i = 1024, a = 576, y = {};
@@ -59,7 +59,7 @@ function N(e, n, o = false) {
     e.fillStyle = "#333333", e.fillRect(h, f, l, d), e.fillStyle = "#00ff00";
     const S = (t.health || 0) / (t.maxHealth || 100) * l;
     e.fillRect(h, f, S, d), e.strokeStyle = "#ffffff", e.lineWidth = 1, e.strokeRect(h, f, l, d), t.isAttacking && t.framesCurrent >= 3 && t.attackBox && (e.strokeStyle = "#ff0000", e.lineWidth = 2, e.strokeRect(t.position.x + (((_c = t.attackBox.offset) == null ? void 0 : _c.x) || 0), t.position.y + (((_d = t.attackBox.offset) == null ? void 0 : _d.y) || 0), t.attackBox.width || 0, t.attackBox.height || 0));
-  }), n.status === "waiting" ? (e.fillStyle = "rgba(0, 0, 0, 0.7)", e.fillRect(0, 0, i, a), e.fillStyle = "#ffffff", e.font = "24px Arial", e.textAlign = "center", e.fillText("Waiting for another player...", i / 2, a / 2)) : n.status === "finished" && (e.fillStyle = "rgba(0, 0, 0, 0.8)", e.fillRect(0, 0, i, a), e.fillStyle = "#ffffff", e.font = "24px Arial", e.textAlign = "center", e.fillText("Game Over!", i / 2, a / 2 - 20), n.winner && e.fillText(`Winner: ${n.winner}`, i / 2, a / 2 + 20));
+  }), n.status === "waiting" ? (e.fillStyle = "rgba(0, 0, 0, 0.7)", e.fillRect(0, 0, i, a), e.fillStyle = "#ffffff", e.font = "24px Arial", e.textAlign = "center", e.fillText("Waiting for another player...", i / 2, a / 2)) : n.status === "finished" && (e.fillStyle = "rgba(0, 0, 0, 0.8)", e.fillRect(0, 0, i, a), e.fillStyle = "#ffffff", e.font = "24px Arial", e.textAlign = "center", e.fillText("Game Over!", i / 2, a / 2 - 20), n.winner && e.fillText(`Winner: ${n.winner}`, i / 2, a / 2 + 20), e.font = "12px Arial", e.fillStyle = "#cccccc", e.fillText("PLAY AGAIN in the bar above", i / 2, a / 2 + 52));
 }
 class O {
   constructor(n, o, r) {
@@ -117,6 +117,17 @@ class O {
       this.ws.send(JSON.stringify(o));
     } catch (r) {
       console.error("Failed to send input:", r), this.notifyErrorHandlers(new Error("Failed to send input"));
+    }
+  }
+  sendRestart() {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not connected"), this.notifyErrorHandlers(new Error("WebSocket is not connected"));
+      return;
+    }
+    try {
+      this.ws.send(JSON.stringify({ action: "restart" }));
+    } catch (n) {
+      console.error("Failed to send restart:", n), this.notifyErrorHandlers(new Error("Failed to send restart"));
     }
   }
   disconnect() {
@@ -191,12 +202,12 @@ class O {
   }
 }
 export {
-  a as C,
+  i as C,
   O as F,
-  C as S,
-  A as a,
-  i as b,
-  W as g,
+  W as S,
+  R as a,
+  a as b,
+  C as g,
   N as r,
-  R as v
+  A as v
 };

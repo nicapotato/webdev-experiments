@@ -2,24 +2,17 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  ArrowLeft,
   Users,
   Wifi,
   WifiOff,
   Copy,
   RefreshCw,
   Grid3X3,
+  RotateCcw,
   Swords,
 } from "lucide-react";
 import { toast } from "sonner";
+import { multiplayerShareUrl } from "@/lib/multiplayer-share-url";
 import {
   FighterGameClient,
   type FighterGameState,
@@ -351,13 +344,18 @@ export default function FighterGamePage() {
     };
   }, [gameState, showGrid]);
 
-  // Copy shareable link to clipboard
-  const copyRoomId = async () => {
+  const restartMatch = useCallback(() => {
+    if (!gameClient?.isConnected()) return;
+    gameClient.sendRestart();
+  }, [gameClient]);
+
+  const copyShareLink = async () => {
     try {
-      const shareableLink = `${window.location.origin}/console/learning/games/multiplayer-games/${roomId}/fighter`;
-      await navigator.clipboard.writeText(shareableLink);
+      await navigator.clipboard.writeText(
+        multiplayerShareUrl(roomId, "fighter"),
+      );
       toast.success("Shareable link copied to clipboard!");
-    } catch (error) {
+    } catch {
       toast.error("Failed to copy shareable link");
     }
   };
@@ -414,11 +412,11 @@ export default function FighterGamePage() {
 
   return (
     <div
-      className="min-h-screen bg-black text-white"
+      className="flex min-h-screen flex-col bg-black text-white"
       style={{ fontFamily: "'Press Start 2P', monospace" }}
     >
       {/* Fixed positioned buttons */}
-      <div className="fixed top-4 right-4 z-[100] flex gap-2">
+      <div className="fixed top-4 right-4 z-100 flex gap-2">
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className="bg-gray-700 border-2 border-red-500 hover:bg-red-500 hover:text-black text-red-400 px-4 py-2 text-xs transition-colors"
@@ -446,162 +444,137 @@ export default function FighterGamePage() {
         </button>
       </div>
 
-      {/* Header */}
+      {/* Main: fill viewport under fixed controls; center arena + game */}
       <div
-        className="border-b-4 border-red-500 bg-black"
-        style={{ boxShadow: "0 4px 8px rgba(0,0,0,0.8)" }}
+        className={`flex min-h-0 flex-1 flex-col pt-16 sm:pt-[4.5rem] ${isSidebarOpen ? "lg:flex-row lg:items-stretch lg:gap-4 lg:px-4 lg:pb-4" : "items-center justify-center px-3 pb-6 sm:px-4"}`}
       >
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/multiplayer")}
-                className="text-white hover:bg-gray-800 border-2 border-red-500"
-                style={{
-                  fontFamily: "'Press Start 2P', monospace",
-                  fontSize: "8px",
-                }}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div>
-                <h1
-                  className="text-xl font-bold flex items-center gap-3 text-red-500"
-                  style={{
-                    fontSize: "14px",
-                    textShadow: "2px 2px 0px #000",
-                    fontFamily: "'Press Start 2P', monospace",
-                  }}
-                >
-                  <Swords className="h-6 w-6" />
-                  FIGHTER GAME
-                </h1>
-                <p
-                  className="text-red-300"
-                  style={{
-                    fontSize: "8px",
-                    fontFamily: "'Press Start 2P', monospace",
-                  }}
-                >
-                  ROOM: {roomId}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              {/* Connection Status */}
-              <div className="flex items-center gap-2">
-                {isConnected ? (
-                  <Wifi className="h-4 w-4 text-green-500" />
-                ) : (
-                  <WifiOff className="h-4 w-4 text-red-500" />
-                )}
-                <span
-                  className="text-sm font-medium text-red-300"
-                  style={{
-                    fontSize: "8px",
-                    fontFamily: "'Press Start 2P', monospace",
-                  }}
-                >
-                  {isConnected ? "CONNECTED" : "DISCONNECTED"}
-                </span>
-              </div>
-
-              {/* Game Status */}
-              <div
-                className={`px-4 py-2 border-2 text-black ${
-                  gameStatus === "playing"
-                    ? "bg-green-400 border-green-400"
-                    : gameStatus === "waiting"
-                      ? "bg-yellow-400 border-yellow-400"
-                      : gameStatus === "finished"
-                        ? "bg-red-400 border-red-400"
-                        : "bg-gray-400 border-gray-400"
-                }`}
-                style={{
-                  fontSize: "10px",
-                  fontFamily: "'Press Start 2P', monospace",
-                  boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
-                }}
-              >
-                {gameStatus === "playing"
-                  ? "PLAYING"
-                  : gameStatus === "waiting"
-                    ? "WAITING"
-                    : gameStatus === "finished"
-                      ? "FINISHED"
-                      : "UNKNOWN"}
-              </div>
-
-              {/* Copy Shareable Link */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyRoomId}
-                className="bg-red-600 border-2 border-red-400 hover:bg-red-500 px-3 py-2 text-xs text-white transition-colors"
-                style={{
-                  fontSize: "8px",
-                  fontFamily: "'Press Start 2P', monospace",
-                  boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
-                }}
-              >
-                <Copy className="h-4 w-4 mr-2" />
-                COPY SHAREABLE LINK
-              </Button>
-
-              {/* Refresh */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={refreshGameState}
-                className="bg-gray-700 border-2 border-red-500 text-red-400 hover:bg-red-500 hover:text-black px-3 py-2"
-                style={{
-                  fontSize: "8px",
-                  fontFamily: "'Press Start 2P', monospace",
-                  boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
-                }}
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="container mx-auto px-6 py-8">
         <div
-          className={`grid gap-6 ${isSidebarOpen ? "grid-cols-1 lg:grid-cols-4" : "grid-cols-1"}`}
+          className={`flex min-h-0 w-full min-w-0 flex-col items-center justify-center ${isSidebarOpen ? "lg:flex-1 lg:py-2" : "flex-1"}`}
         >
-          {/* Game Canvas */}
-          <div className={isSidebarOpen ? "lg:col-span-3" : ""}>
-            <div
-              className="bg-gray-900 border-4 border-red-500 rounded-lg overflow-hidden"
-              style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.8)" }}
-            >
-              <div className="bg-red-500 px-6 py-4 border-b-4 border-red-500">
-                <div className="flex items-center justify-between">
-                  <h3
-                    className="text-black font-bold"
-                    style={{
-                      fontSize: "10px",
-                      fontFamily: "'Press Start 2P', monospace",
-                      textShadow: "1px 1px 0px #000",
-                    }}
-                  >
-                    GAME ARENA
-                  </h3>
-                  <div className="flex items-center gap-2">
+          <div
+            className="flex w-full max-w-[min(1024px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-lg border-4 border-red-500 bg-gray-900"
+            style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.8)" }}
+          >
+              <div className="border-b-4 border-red-500 bg-red-500 px-3 py-3 sm:px-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
+                    <h3
+                      className="text-black font-bold shrink-0"
+                      style={{
+                        fontSize: "10px",
+                        fontFamily: "'Press Start 2P', monospace",
+                        textShadow: "1px 1px 0px #000",
+                      }}
+                    >
+                      GAME ARENA
+                    </h3>
+                    <p
+                      className="text-black/90 break-all"
+                      style={{
+                        fontSize: "7px",
+                        fontFamily: "'Press Start 2P', monospace",
+                      }}
+                    >
+                      ROOM {roomId}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 lg:gap-3">
+                    <div className="flex items-center gap-1.5">
+                      {isConnected ? (
+                        <Wifi className="h-4 w-4 text-black shrink-0" />
+                      ) : (
+                        <WifiOff className="h-4 w-4 text-black shrink-0" />
+                      )}
+                      <span
+                        className="text-black font-bold"
+                        style={{
+                          fontSize: "8px",
+                          fontFamily: "'Press Start 2P', monospace",
+                        }}
+                      >
+                        {isConnected ? "CONNECTED" : "DISCONNECTED"}
+                      </span>
+                    </div>
+                    <div
+                      className={`px-3 py-1.5 border-2 text-black ${
+                        gameStatus === "playing"
+                          ? "bg-green-400 border-black"
+                          : gameStatus === "waiting"
+                            ? "bg-yellow-400 border-black"
+                            : gameStatus === "finished"
+                              ? "bg-red-300 border-black"
+                              : "bg-gray-300 border-black"
+                      }`}
+                      style={{
+                        fontSize: "8px",
+                        fontFamily: "'Press Start 2P', monospace",
+                        boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
+                      }}
+                    >
+                      {gameStatus === "playing"
+                        ? "PLAYING"
+                        : gameStatus === "waiting"
+                          ? "WAITING"
+                          : gameStatus === "finished"
+                            ? "FINISHED"
+                            : "—"}
+                    </div>
+                    {gameStatus === "finished" && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={restartMatch}
+                        disabled={!isConnected}
+                        className="border-2 border-black bg-yellow-400 px-2 py-1.5 font-bold text-black hover:bg-yellow-300 disabled:opacity-50"
+                        style={{
+                          fontSize: "8px",
+                          fontFamily: "'Press Start 2P', monospace",
+                          boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
+                        }}
+                        aria-label="Play again in this room"
+                      >
+                        <RotateCcw className="mr-1.5 inline h-3.5 w-3.5" />
+                        PLAY AGAIN
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={copyShareLink}
+                      className="bg-black border-2 border-black hover:bg-gray-900 px-2 py-1.5 text-white"
+                      style={{
+                        fontSize: "7px",
+                        fontFamily: "'Press Start 2P', monospace",
+                        boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #333",
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5 mr-1.5 inline" />
+                      COPY LINK
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={refreshGameState}
+                      className="bg-gray-800 border-2 border-black text-white hover:bg-gray-700 px-2 py-1.5"
+                      style={{
+                        fontSize: "8px",
+                        fontFamily: "'Press Start 2P', monospace",
+                      }}
+                      aria-label="Refresh view"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant={showGrid ? "default" : "outline"}
                       size="sm"
                       onClick={() => setShowGrid(!showGrid)}
                       className={`px-3 py-2 border-2 font-bold transition-colors ${
                         showGrid
-                          ? "bg-green-400 border-green-400 text-black"
-                          : "bg-gray-700 border-red-500 text-red-400 hover:bg-red-500 hover:text-black"
+                          ? "bg-green-400 border-black text-black"
+                          : "bg-gray-800 border-black text-white hover:bg-gray-700"
                       }`}
                       style={{
                         fontSize: "8px",
@@ -615,32 +588,32 @@ export default function FighterGamePage() {
                   </div>
                 </div>
               </div>
-              <div className="p-6 flex justify-center">
+              <div className="w-full bg-black">
                 <div
-                  className="border-4 border-red-500 rounded-lg overflow-hidden bg-black"
-                  style={{ boxShadow: "0 0 0 4px #000, inset 0 0 0 2px #000" }}
+                  className="relative w-full"
+                  style={{
+                    aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
+                    maxHeight:
+                      "min(576px, calc(100svh - 12rem), calc(100vh - 12rem))",
+                  }}
                 >
                   <canvas
                     ref={canvasRef}
                     width={CANVAS_WIDTH}
                     height={CANVAS_HEIGHT}
-                    className="block"
+                    className="absolute inset-0 block h-full w-full max-h-full max-w-full"
                     style={{
-                      width: "100%",
-                      height: "100%",
-                      maxWidth: "1024px",
-                      maxHeight: "576px",
                       imageRendering: "pixelated",
                     }}
                   />
                 </div>
               </div>
             </div>
-          </div>
+        </div>
 
           {/* Game Info Sidebar */}
           {isSidebarOpen && (
-            <div className="space-y-4">
+            <div className="mx-auto w-full max-w-lg shrink-0 space-y-4 px-3 pb-4 lg:mx-0 lg:w-80 lg:max-w-sm lg:overflow-y-auto lg:px-0 lg:pb-0">
               {/* Players */}
               <div
                 className="bg-gray-900 border-4 border-red-500 rounded-lg overflow-hidden"
@@ -1023,7 +996,6 @@ export default function FighterGamePage() {
               )}
             </div>
           )}
-        </div>
       </div>
     </div>
   );

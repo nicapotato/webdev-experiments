@@ -1,35 +1,43 @@
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-import { g as d, a as f } from "./gin-DHzzR3IR.js";
-async function h(e, t, n) {
+import { c as d } from "./grid-3x3-DlLMeids.js";
+import { g as f, a as h } from "./gin-DHzzR3IR.js";
+/**
+* @license lucide-react v1.8.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+const m = [["path", { d: "m12 19-7-7 7-7", key: "1l729n" }], ["path", { d: "M19 12H5", key: "x3x0zl" }]], g = d("arrow-left", m);
+async function u(e, t, n) {
   const r = new URLSearchParams({ userId: t, username: encodeURIComponent(n) });
-  return `${f()}/api/snake/ws/${e}?${r.toString()}`;
+  return `${h()}/api/snake/ws/${e}?${r.toString()}`;
 }
-async function y() {
+async function k() {
   try {
-    const e = await fetch(`${d()}/api/snake/active-rooms`);
+    const e = await fetch(`${f()}/api/snake/active-rooms`);
     if (!e.ok) throw new Error("Failed to fetch active rooms");
     return (await e.json()).rooms || [];
   } catch (e) {
     return console.error("Error fetching active rooms:", e), [];
   }
 }
-function E(e) {
+function S(e) {
   return /^[a-zA-Z0-9_-]+$/.test(e) && e.length > 0 && e.length <= 50;
 }
-function g() {
+function b() {
   return `snake_${Math.random().toString(36).substr(2, 9)}`;
 }
-var m = ((e) => (e[e.Up = 0] = "Up", e[e.Down = 1] = "Down", e[e.Left = 2] = "Left", e[e.Right = 3] = "Right", e))(m || {});
-const u = 45, p = 30, c = 20, H = u * c, k = p * c;
-function S() {
+var p = ((e) => (e[e.Up = 0] = "Up", e[e.Down = 1] = "Down", e[e.Left = 2] = "Left", e[e.Right = 3] = "Right", e))(p || {});
+const w = 45, y = 30, c = 20, C = w * c, W = y * c;
+function I() {
   return [{ X: 10, Y: 10 }];
 }
-function b() {
+function A() {
   return { X: 15, Y: 15 };
 }
-function C(e, t, n) {
+function R(e, t, n) {
   let r, o = 0;
   const i = 100;
   do
@@ -37,7 +45,7 @@ function C(e, t, n) {
   while (o < i && n.some((s) => s.X === r.X && s.Y === r.Y));
   return r;
 }
-function W(e, t, n, r) {
+function N(e, t, n, r) {
   const o = { ...e[0] };
   switch (t) {
     case 0:
@@ -57,13 +65,13 @@ function W(e, t, n, r) {
   const i = e.some((a) => a.X === o.X && a.Y === o.Y);
   return { newSnake: [o, ...e], collided: i };
 }
-function I(e, t) {
+function O(e, t) {
   return e.X === t.X && e.Y === t.Y;
 }
-function R(e, t) {
+function X(e, t) {
   return { 0: 1, 1: 0, 2: 3, 3: 2 }[e] !== t;
 }
-function A(e, t, n = c, r = true) {
+function Y(e, t, n = c, r = true) {
   const o = t.boardWidth * n, i = t.boardHeight * n;
   if (e.fillStyle = "#000000", e.fillRect(0, 0, o, i), r) {
     e.strokeStyle = "#333333", e.lineWidth = 1;
@@ -76,7 +84,7 @@ function A(e, t, n = c, r = true) {
     });
   }), t.status === "waiting" ? (e.fillStyle = "rgba(0, 0, 0, 0.7)", e.fillRect(0, 0, o, i), e.fillStyle = "#ffffff", e.font = "24px Arial", e.textAlign = "center", e.fillText("Waiting for another player...", o / 2, i / 2)) : t.status === "finished" && (e.fillStyle = "rgba(0, 0, 0, 0.7)", e.fillRect(0, 0, o, i), e.fillStyle = "#ffffff", e.font = "24px Arial", e.textAlign = "center", e.fillText("Game Over!", o / 2, i / 2 - 20), t.winner && e.fillText(`Winner: ${t.winner}`, o / 2, i / 2 + 20));
 }
-class O {
+class v {
   constructor(t, n, r) {
     __publicField(this, "ws", null);
     __publicField(this, "roomId");
@@ -93,7 +101,7 @@ class O {
   async connect() {
     return new Promise(async (t, n) => {
       try {
-        const r = await h(this.roomId, this.userId, this.username);
+        const r = await u(this.roomId, this.userId, this.username);
         console.log("Connecting to snake game:", r), this.ws = new WebSocket(r), this.ws.onopen = () => {
           console.log(`Connected to snake game ${this.roomId} as ${this.username}`), this.reconnectAttempts = 0, this.notifyConnectionHandlers(true), t();
         }, this.ws.onmessage = (o) => {
@@ -218,21 +226,22 @@ class O {
   }
 }
 export {
-  p as B,
-  H as C,
-  m as D,
-  O as S,
-  b as a,
-  u as b,
-  S as c,
-  I as d,
-  k as e,
+  g as A,
+  y as B,
+  C,
+  p as D,
+  v as S,
+  A as a,
+  w as b,
+  I as c,
+  O as d,
+  W as e,
   c as f,
-  C as g,
-  y as h,
-  R as i,
-  g as j,
-  W as m,
-  A as r,
-  E as v
+  R as g,
+  k as h,
+  X as i,
+  b as j,
+  N as m,
+  Y as r,
+  S as v
 };
