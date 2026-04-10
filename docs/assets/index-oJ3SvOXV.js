@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/SnakeSinglePlayerPage-BXwBqR1L.js","assets/button-D-kmfqC9.js","assets/utils-CO_k8hEn.js","assets/badge-C7BIJ3u4.js","assets/snake-game-multiplayer-HojqPLVm.js","assets/gin-DHzzR3IR.js","assets/SnakePlayBackground-kEsXwql9.js","assets/createLucideIcon-C6AFw-_j.js","assets/rotate-ccw-BYoUNIHK.js","assets/grid-3x3-6ExqiN75.js","assets/TypingPage-k3ZT7Hld.js","assets/page-C0pb9wzg.js","assets/chess-game-multiplayer-XMnaIFi4.js","assets/checkers-game-multiplayer-BKVBYG5z.js","assets/fighter-game-multiplayer-DyF09_Ov.js","assets/multiplayer-join-gate-DCBl9E8O.js","assets/users-917X1AQ7.js","assets/arrow-left-iac-O2xV.js","assets/page-CimH6JAu.js","assets/player-utils-sDKa8flh.js","assets/wifi-mvvv7C4K.js","assets/page-CckUpzDj.js","assets/ChessBoardMultiplayer-Bn89UPST.js","assets/page-CItU7HtB.js","assets/page-ByYcrNb6.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/SnakeSinglePlayerPage-DhRXxamm.js","assets/button-CKjJIC7a.js","assets/utils-DhBp-1Ho.js","assets/badge-BFfeV6kF.js","assets/snake-game-multiplayer-CvBkv9C2.js","assets/gin-DHzzR3IR.js","assets/SnakePlayBackground-DqEq1y5L.js","assets/createLucideIcon-Dt2vm8vP.js","assets/rotate-ccw-fyF7bBf4.js","assets/grid-3x3-Dr6Bt-QB.js","assets/TypingPage-DLC7FkVH.js","assets/page-wX5l2nWz.js","assets/chess-game-multiplayer-XMnaIFi4.js","assets/checkers-game-multiplayer-BKVBYG5z.js","assets/fighter-game-multiplayer-DyF09_Ov.js","assets/multiplayer-join-gate-DZ7tIr9u.js","assets/users-B4ozM_gp.js","assets/arrow-left-C8QoXer5.js","assets/page-CbCvscS_.js","assets/player-utils-sDKa8flh.js","assets/wifi-BZN3E2JM.js","assets/page-BkIjKh_5.js","assets/ChessBoardMultiplayer-DWeR5Sb_.js","assets/page-B4mEcxU5.js","assets/page-cMA1MapO.js"])))=>i.map(i=>d[i]);
 let e1, g0, wl, U, Pb, wa, od, v1, ly, b1, At, S0, Gt, i1, ja, S, u1, Ib, Fb, pv, v, x1, Lr, S1;
 let __tla = (async () => {
   function j0(e, t) {
@@ -13254,12 +13254,12 @@ Please change the parent <Route path="${R}"> to <Route path="${R === "/" ? "*" :
         })
       ]
     });
-  }, s1 = v.lazy(() => wa(() => import("./page-BGoSXjqp.js").then(async (m) => {
+  }, s1 = v.lazy(() => wa(() => import("./page-CZJvY7yW.js").then(async (m) => {
     await m.__tla;
     return m;
-  }), [])), r1 = v.lazy(() => wa(() => import("./SnakeSinglePlayerPage-BXwBqR1L.js"), __vite__mapDeps([0,1,2,3,4,5,6,7,8,9])).then((e) => ({
+  }), [])), r1 = v.lazy(() => wa(() => import("./SnakeSinglePlayerPage-DhRXxamm.js"), __vite__mapDeps([0,1,2,3,4,5,6,7,8,9])).then((e) => ({
     default: e.default
-  }))), o1 = v.lazy(() => wa(() => import("./TypingPage-k3ZT7Hld.js"), __vite__mapDeps([10,1,2]))), f1 = v.lazy(() => wa(() => import("./page-C0pb9wzg.js"), __vite__mapDeps([11,2,7,3,4,5,12,13,14,15,16,17]))), d1 = v.lazy(() => wa(() => import("./page-CimH6JAu.js"), __vite__mapDeps([18,1,2,4,5,19,15,6,17,7,16,9,20]))), h1 = v.lazy(() => wa(() => import("./page-CckUpzDj.js"), __vite__mapDeps([21,22,12,5,19,15]))), m1 = v.lazy(() => wa(() => import("./page-CItU7HtB.js"), __vite__mapDeps([23,22,12,5,13,19,15]))), y1 = v.lazy(() => wa(() => import("./page-ByYcrNb6.js"), __vite__mapDeps([24,1,2,14,5,19,15,7,20,8,16,9])));
+  }))), o1 = v.lazy(() => wa(() => import("./TypingPage-DLC7FkVH.js"), __vite__mapDeps([10,1,2]))), f1 = v.lazy(() => wa(() => import("./page-wX5l2nWz.js"), __vite__mapDeps([11,2,7,3,4,5,12,13,14,15,16,17]))), d1 = v.lazy(() => wa(() => import("./page-CbCvscS_.js"), __vite__mapDeps([18,1,2,4,5,19,15,6,17,7,16,9,20]))), h1 = v.lazy(() => wa(() => import("./page-BkIjKh_5.js"), __vite__mapDeps([21,22,12,5,19,15]))), m1 = v.lazy(() => wa(() => import("./page-B4mEcxU5.js"), __vite__mapDeps([23,22,12,5,13,19,15]))), y1 = v.lazy(() => wa(() => import("./page-cMA1MapO.js"), __vite__mapDeps([24,1,2,14,5,19,15,7,20,8,16,9])));
   function p1() {
     return S.jsxs(yb, {
       attribute: "class",

@@ -5,6 +5,7 @@ import {
   applySnakeTint,
   drawSpriteTile,
   getSegmentSpriteSpec,
+  SNAKE_TILE_FOOD,
 } from "./snake-sprite-draw";
 
 export async function getSnakeWebSocketURL(
@@ -69,9 +70,9 @@ export const SNAKE_PROMO_IMAGE = snakePublicAsset("games/snake/snake-promo.png")
 export const SNAKE_PLAY_BACKGROUND_TILE = snakePublicAsset(
   "games/snake/snake-background-1.png",
 );
-/** 3×3 sheet, 62px tiles — single + multiplayer rendering. */
+/** 3×3 sheet, 64×64 tiles (192×192) — single + multiplayer rendering. */
 export const SNAKE_SPRITE_SHEET = snakePublicAsset(
-  "games/snake/snake-spritesheet.png",
+  "games/snake/snake-spritesheet-ii.png",
 );
 
 let snakeSpriteSheetCache: HTMLImageElement | null = null;
@@ -269,7 +270,7 @@ export function isValidDirectionChange(
   return opposites[currentDirection] !== newDirection;
 }
 
-// Canvas rendering utilities
+// Canvas rendering utilities (single-player + multiplayer both use this).
 export function renderGame(
   ctx: CanvasRenderingContext2D,
   gameState: {
@@ -312,12 +313,12 @@ export function renderGame(
 
   const sheet = snakeSpriteSheetCache;
 
-  // Draw food (tile 2 — apple)
+  // Draw food (tile 8)
   if (gameState.food) {
     const fx = gameState.food.position.X * cellSize;
     const fy = gameState.food.position.Y * cellSize;
     if (sheet) {
-      drawSpriteTile(ctx, sheet, fx, fy, cellSize, 2, 0);
+      drawSpriteTile(ctx, sheet, fx, fy, cellSize, SNAKE_TILE_FOOD, 0);
     } else {
       ctx.fillStyle = "#ff0000";
       ctx.fillRect(fx, fy, cellSize, cellSize);
@@ -338,6 +339,7 @@ export function renderGame(
           snake.direction,
           gameState.boardWidth,
           gameState.boardHeight,
+          { food: gameState.food?.position ?? null },
         );
         drawSpriteTile(ctx, sheet, x, y, cellSize, spec.tileIndex, spec.rotation);
         applySnakeTint(ctx, x, y, cellSize, snake.color);
