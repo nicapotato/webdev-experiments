@@ -12,10 +12,10 @@ help: ## Show targets
 install: ## Install dependencies (bun)
 	bun install
 
-dev: ## Vite dev server
+dev: ## Vite dev server (loads .env.dev)
 	bun run dev
 
-build: ## Production build → docs/ (games land in docs/games/ from public/games/)
+build: ## Production build → docs/; loads .env.prod (games from public/games/)
 	bun run build
 
 preview: ## Preview production build (dist output is docs/)

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ import {
   Crown,
   Swords,
   Play,
+  Lock,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -62,6 +63,9 @@ import {
   getActiveFighterRooms,
   type ActiveFighterRoomInfo,
 } from "@/games/multiplayer-games/fighter/fighter-game-multiplayer";
+import { allowMultiplayerJoin } from "@/lib/multiplayer-join-gate";
+import { cn } from "@/lib/utils";
+import { verifyRoomJoinPassword } from "@/games/multiplayer-games/verify-room-join";
 
 // Game configurations for the right panel and gallery
 type GameKey = "snake" | "chess" | "checkers" | "fighter";
@@ -146,7 +150,7 @@ export default function MultiplayerGameLobbyPage() {
 
   // Layout state
   const [isRightPanelVisible, setIsRightPanelVisible] = useState(true);
-  const [rightPanelWidth, setRightPanelWidth] = useState(400);
+  const [rightPanelWidth, setRightPanelWidth] = useState(480);
   const splitContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Right panel state
@@ -160,8 +164,22 @@ export default function MultiplayerGameLobbyPage() {
   const [gameType, setGameType] = useState("all");
   const [numPlayers, setNumPlayers] = useState("2");
   const [roomGameType, setRoomGameType] = useState("basic");
+  const [snakeTickMs, setSnakeTickMs] = useState("50");
   const [selectedStyle, setSelectedStyle] = useState("");
   const [additionalRules, setAdditionalRules] = useState("");
+  const [passwordProtectRoom, setPasswordProtectRoom] = useState(false);
+  const [createRoomPassword, setCreateRoomPassword] = useState("");
+  /** `${game}:${roomId}` when that row is showing the password field */
+  const [joinPromptKey, setJoinPromptKey] = useState<string | null>(null);
+  const [joinPasswordDraft, setJoinPasswordDraft] = useState<
+    Record<string, string>
+  >({});
+  /** After join-check API returns 403 — red border on that row’s password field */
+  const [joinPasswordRejected, setJoinPasswordRejected] = useState<
+    Record<string, boolean>
+  >({});
+  /** Row currently awaiting verifyRoomJoinPassword (disables JOIN) */
+  const [joinVerifyKey, setJoinVerifyKey] = useState<string | null>(null);
 
   // Currently selected game config (for right panel background)
   const selectedConfig = selectedGameForDetails
@@ -211,14 +229,42 @@ export default function MultiplayerGameLobbyPage() {
       const containerWidth = container.offsetWidth;
       const halfWidth = containerWidth / 2;
       const maxWidth = containerWidth * 0.7;
-      setRightPanelWidth(Math.max(300, Math.min(maxWidth, halfWidth)));
+      setRightPanelWidth(Math.max(380, Math.min(maxWidth, halfWidth)));
     }
   }, []);
 
-  // Join existing room
+  const joinRowKey = (game: GameKey, roomId: string) => `${game}:${roomId}`;
+
+  const lobbyRows = useMemo(
+    () => [
+      ...activeRooms.map((room) => ({ game: "snake" as const, room })),
+      ...activeChessRooms.map((room) => ({ game: "chess" as const, room })),
+      ...activeCheckersRooms.map((room) => ({ game: "checkers" as const, room })),
+      ...activeFighterRooms.map((room) => ({ game: "fighter" as const, room })),
+    ],
+    [activeRooms, activeChessRooms, activeCheckersRooms, activeFighterRooms],
+  );
+
+  const gameRowBadgeClass = (game: GameKey) => {
+    switch (game) {
+      case "snake":
+        return "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200";
+      case "chess":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200";
+      case "checkers":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200";
+      case "fighter":
+        return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200";
+      default:
+        return "bg-secondary";
+    }
+  };
+
+  // Join existing room (password comes from the row draft when protected)
   const joinRoom = (
     roomId?: string,
     gameType?: "snake" | "chess" | "checkers" | "fighter",
+    roomPassword?: string,
   ) => {
     const targetRoomId = roomId || roomIdInput.trim();
     const targetGameType = gameType;
@@ -249,9 +295,56 @@ export default function MultiplayerGameLobbyPage() {
       return;
     }
 
-    navigate(
-      `/multiplayer/${targetRoomId}/${targetGameType}`,
-    );
+    const pw = roomPassword?.trim() || undefined;
+    allowMultiplayerJoin(targetRoomId, targetGameType);
+    navigate(`/multiplayer/${targetRoomId}/${targetGameType}`, {
+      state: { roomPassword: pw },
+    });
+  };
+
+  const handleLobbyJoinClick = async (
+    game: GameKey,
+    room: { id: string; passwordProtected?: boolean },
+  ) => {
+    const key = joinRowKey(game, room.id);
+    const locked = !!room.passwordProtected;
+    if (!locked) {
+      setJoinPromptKey(null);
+      setJoinPasswordRejected((prev) => ({ ...prev, [key]: false }));
+      joinRoom(room.id, game, undefined);
+      return;
+    }
+    if (joinPromptKey !== key) {
+      setJoinPromptKey(key);
+      setJoinPasswordRejected((prev) => ({ ...prev, [key]: false }));
+      return;
+    }
+    const pw = (joinPasswordDraft[key] ?? "").trim();
+    if (!pw) {
+      toast.error("Enter the room password");
+      return;
+    }
+    setJoinVerifyKey(key);
+    setJoinPasswordRejected((prev) => ({ ...prev, [key]: false }));
+    try {
+      const result = await verifyRoomJoinPassword(game, room.id, pw);
+      if (result === "wrong_password") {
+        setJoinPasswordRejected((prev) => ({ ...prev, [key]: true }));
+        toast.error("Wrong password");
+        return;
+      }
+      if (result === "not_found") {
+        toast.error("Room not found — try refreshing the list");
+        return;
+      }
+      if (result === "error") {
+        toast.error("Could not verify password");
+        return;
+      }
+      joinRoom(room.id, game, pw);
+    } finally {
+      setJoinVerifyKey(null);
+    }
   };
 
   // Handle game card click in gallery
@@ -261,8 +354,11 @@ export default function MultiplayerGameLobbyPage() {
     // Reset game creation state
     setNumPlayers("2");
     setRoomGameType("basic");
+    setSnakeTickMs("50");
     setSelectedStyle("");
     setAdditionalRules("");
+    setPasswordProtectRoom(false);
+    setCreateRoomPassword("");
   };
 
   // Handle browse games button
@@ -275,22 +371,38 @@ export default function MultiplayerGameLobbyPage() {
   const createRoom = async () => {
     if (!selectedGameForDetails) return;
 
+    if (passwordProtectRoom && !createRoomPassword.trim()) {
+      toast.error("Enter a room password");
+      return;
+    }
+
+    const roomPasswordState = passwordProtectRoom
+      ? createRoomPassword
+      : undefined;
+
     setIsCreating(true);
     try {
       let newRoomId = "";
       if (selectedGameForDetails === "snake") {
         newRoomId = generateRoomId();
-      } else if (selectedGameForDetails === "chess") {
+        allowMultiplayerJoin(newRoomId, "snake");
+        navigate(
+          `/multiplayer/${newRoomId}/snake?tickMs=${encodeURIComponent(snakeTickMs)}`,
+          { state: { roomPassword: roomPasswordState } },
+        );
+        return;
+      }
+      if (selectedGameForDetails === "chess") {
         newRoomId = generateChessRoomId();
       } else if (selectedGameForDetails === "checkers") {
         newRoomId = generateCheckersRoomId();
       } else if (selectedGameForDetails === "fighter") {
         newRoomId = generateFighterRoomId();
       }
-      // TODO: Pass room configuration (numPlayers, roomGameType, additionalRules) to the room creation
-      navigate(
-        `/multiplayer/${newRoomId}/${selectedGameForDetails}`,
-      );
+      allowMultiplayerJoin(newRoomId, selectedGameForDetails);
+      navigate(`/multiplayer/${newRoomId}/${selectedGameForDetails}`, {
+        state: { roomPassword: roomPasswordState },
+      });
     } catch (error) {
       toast.error("Failed to create room");
     } finally {
@@ -339,7 +451,7 @@ export default function MultiplayerGameLobbyPage() {
                       const maxWidth = containerWidth * 0.7;
                       const halfWidth = containerWidth / 2;
                       setRightPanelWidth(
-                        Math.max(300, Math.min(maxWidth, halfWidth)),
+                        Math.max(380, Math.min(maxWidth, halfWidth)),
                       );
                     }
                   }
@@ -401,10 +513,7 @@ export default function MultiplayerGameLobbyPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                {activeRooms.length === 0 &&
-                activeChessRooms.length === 0 &&
-                activeCheckersRooms.length === 0 &&
-                activeFighterRooms.length === 0 ? (
+                {lobbyRows.length === 0 ? (
                   <div className="text-center py-12">
                     <img
                       src={getGameIconSrc()}
@@ -424,185 +533,156 @@ export default function MultiplayerGameLobbyPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {/* Snake Rooms */}
-                    {activeRooms.map((room) => (
-                      <Card
-                        key={`snake-${room.id}`}
-                        className="cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => joinRoom(room.id, "snake")}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <Badge
-                                variant="secondary"
-                                className="bg-green-100 text-green-800"
-                              >
-                                Snake
-                              </Badge>
-                              <span className="font-mono font-medium">
-                                {room.id}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Users className="h-4 w-4" />
-                                <span>{room.playerCount}/2</span>
+                    {lobbyRows.map(({ game, room }) => {
+                      const rowKey = joinRowKey(game, room.id);
+                      const maxPlayers = gameConfigs[game].maxPlayers;
+                      const locked = !!room.passwordProtected;
+                      const promptOpen = joinPromptKey === rowKey;
+                      const verifying = joinVerifyKey === rowKey;
+                      const rejected = !!joinPasswordRejected[rowKey];
+                      return (
+                        <Card
+                          key={rowKey}
+                          className="border-border/80 shadow-sm overflow-hidden"
+                        >
+                          <CardContent className="p-4 sm:p-5">
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:justify-between lg:gap-6">
+                              <div className="min-w-0 flex-1 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+                                <Badge
+                                  variant="secondary"
+                                  className={gameRowBadgeClass(game)}
+                                >
+                                  {gameConfigs[game].name}
+                                </Badge>
+                                {locked ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="gap-1 border-amber-500/60 text-amber-900 dark:text-amber-200 bg-amber-50/80 dark:bg-amber-950/40"
+                                  >
+                                    <Lock
+                                      className="h-3.5 w-3.5 shrink-0"
+                                      aria-hidden
+                                    />
+                                    Password
+                                  </Badge>
+                                ) : null}
+                                <span className="font-mono font-medium text-sm sm:text-base break-all">
+                                  {room.id}
+                                </span>
+                                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground sm:ml-auto">
+                                  <div className="flex items-center gap-1">
+                                    <Users className="h-4 w-4 shrink-0" />
+                                    <span>
+                                      {room.playerCount}/{maxPlayers}
+                                    </span>
+                                  </div>
+                                  <Badge
+                                    variant={
+                                      room.status === "waiting"
+                                        ? "secondary"
+                                        : "default"
+                                    }
+                                    className={
+                                      room.status === "waiting"
+                                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200"
+                                        : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200"
+                                    }
+                                  >
+                                    {room.status}
+                                  </Badge>
+                                </div>
                               </div>
-                              <Badge
-                                variant={
-                                  room.status === "waiting"
-                                    ? "secondary"
-                                    : "default"
-                                }
-                                className={
-                                  room.status === "waiting"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-green-100 text-green-800"
-                                }
-                              >
-                                {room.status}
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
 
-                    {/* Chess Rooms */}
-                    {activeChessRooms.map((room) => (
-                      <Card
-                        key={`chess-${room.id}`}
-                        className="cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => joinRoom(room.id, "chess")}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <Badge
-                                variant="secondary"
-                                className="bg-blue-100 text-blue-800"
-                              >
-                                Chess
-                              </Badge>
-                              <span className="font-mono font-medium">
-                                {room.id}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Users className="h-4 w-4" />
-                                <span>{room.playerCount}/2</span>
-                              </div>
-                              <Badge
-                                variant={
-                                  room.status === "waiting"
-                                    ? "secondary"
-                                    : "default"
-                                }
-                                className={
-                                  room.status === "waiting"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-green-100 text-green-800"
-                                }
-                              >
-                                {room.status}
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                              <div className="flex w-full shrink-0 flex-col gap-2 sm:min-w-[min(100%,320px)] lg:w-[min(100%,360px)]">
+                                {locked && promptOpen ? (
+                                  <div className="space-y-1.5">
+                                    <Label
+                                      htmlFor={`join-pw-${rowKey}`}
+                                      className="text-xs text-muted-foreground"
+                                    >
+                                      Room password
+                                    </Label>
+                                    <Input
+                                      id={`join-pw-${rowKey}`}
+                                      type="password"
+                                      name="room-password"
+                                      autoComplete="off"
+                                      autoCorrect="off"
+                                      spellCheck={false}
+                                      aria-invalid={rejected}
+                                      value={joinPasswordDraft[rowKey] ?? ""}
+                                      onChange={(e) => {
+                                        const v = e.target.value;
+                                        setJoinPasswordDraft((prev) => ({
+                                          ...prev,
+                                          [rowKey]: v,
+                                        }));
+                                        if (rejected) {
+                                          setJoinPasswordRejected((prev) => ({
+                                            ...prev,
+                                            [rowKey]: false,
+                                          }));
+                                        }
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter" && !verifying) {
+                                          e.preventDefault();
+                                          void handleLobbyJoinClick(
+                                            game,
+                                            room,
+                                          );
+                                        }
+                                      }}
+                                      className={cn(
+                                        "font-mono text-sm",
+                                        rejected &&
+                                          "border-red-500 border-2 ring-2 ring-red-500/35 focus-visible:ring-red-500/50",
+                                      )}
+                                      placeholder="••••••••"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground leading-tight">
+                                      Then tap JOIN.{" "}
+                                      <button
+                                        type="button"
+                                        className="underline underline-offset-2 hover:text-foreground"
+                                        onClick={() => {
+                                          setJoinPromptKey(null);
+                                          setJoinPasswordRejected((prev) => ({
+                                            ...prev,
+                                            [rowKey]: false,
+                                          }));
+                                          setJoinPasswordDraft((prev) => {
+                                            const next = { ...prev };
+                                            delete next[rowKey];
+                                            return next;
+                                          });
+                                        }}
+                                      >
+                                        Cancel
+                                      </button>
+                                    </p>
+                                  </div>
+                                ) : null}
 
-                    {/* Checkers Rooms */}
-                    {activeCheckersRooms.map((room) => (
-                      <Card
-                        key={`checkers-${room.id}`}
-                        className="cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => joinRoom(room.id, "checkers")}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <Badge
-                                variant="secondary"
-                                className="bg-orange-100 text-orange-800"
-                              >
-                                Checkers
-                              </Badge>
-                              <span className="font-mono font-medium">
-                                {room.id}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Users className="h-4 w-4" />
-                                <span>{room.playerCount}/2</span>
+                                <button
+                                  type="button"
+                                  disabled={verifying}
+                                  onClick={() =>
+                                    void handleLobbyJoinClick(game, room)
+                                  }
+                                  style={{
+                                    fontFamily: "'Press Start 2P', monospace",
+                                  }}
+                                  className="w-full py-3.5 px-5 uppercase tracking-[0.12em] text-[11px] sm:text-xs leading-relaxed bg-green-600 hover:bg-green-700 active:bg-green-800 text-white border-2 border-green-900/80 rounded-md shadow-[3px_3px_0_0_rgba(0,0,0,0.35)] hover:shadow-[2px_2px_0_0_rgba(0,0,0,0.35)] hover:translate-y-px transition-all disabled:opacity-60 disabled:pointer-events-none"
+                                >
+                                  {verifying ? "…" : "JOIN"}
+                                </button>
                               </div>
-                              <Badge
-                                variant={
-                                  room.status === "waiting"
-                                    ? "secondary"
-                                    : "default"
-                                }
-                                className={
-                                  room.status === "waiting"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-green-100 text-green-800"
-                                }
-                              >
-                                {room.status}
-                              </Badge>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-
-                    {/* Fighter Rooms */}
-                    {activeFighterRooms.map((room) => (
-                      <Card
-                        key={`fighter-${room.id}`}
-                        className="cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => joinRoom(room.id, "fighter")}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <Badge
-                                variant="secondary"
-                                className="bg-red-100 text-red-800"
-                              >
-                                Fighter
-                              </Badge>
-                              <span className="font-mono font-medium">
-                                {room.id}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Users className="h-4 w-4" />
-                                <span>{room.playerCount}/2</span>
-                              </div>
-                              <Badge
-                                variant={
-                                  room.status === "waiting"
-                                    ? "secondary"
-                                    : "default"
-                                }
-                                className={
-                                  room.status === "waiting"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-green-100 text-green-800"
-                                }
-                              >
-                                {room.status}
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -627,7 +707,7 @@ export default function MultiplayerGameLobbyPage() {
               const handleMouseMove = (e: MouseEvent) => {
                 const deltaX = startX - e.clientX;
                 setRightPanelWidth(
-                  Math.max(300, Math.min(maxWidth, startWidth + deltaX)),
+                  Math.max(380, Math.min(maxWidth, startWidth + deltaX)),
                 );
               };
 
@@ -882,6 +962,39 @@ export default function MultiplayerGameLobbyPage() {
                                     </div>
                                   )}
 
+                                  {selectedGameForDetails === "snake" && (
+                                    <div className="space-y-2">
+                                      <Label>Game speed (server tick)</Label>
+                                      <Select
+                                        value={snakeTickMs}
+                                        onValueChange={setSnakeTickMs}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="100">
+                                            Slow — 100ms
+                                          </SelectItem>
+                                          <SelectItem value="50">
+                                            Normal — 50ms
+                                          </SelectItem>
+                                          <SelectItem value="35">
+                                            Fast — 35ms
+                                          </SelectItem>
+                                          <SelectItem value="25">
+                                            Blitz — 25ms
+                                          </SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <p className="text-muted-foreground text-xs">
+                                        Lower milliseconds = faster movement. Set
+                                        when the room is created (host&apos;s first
+                                        connection).
+                                      </p>
+                                    </div>
+                                  )}
+
                                   <div className="space-y-2">
                                     <Label>Additional Rules</Label>
                                     <Input
@@ -891,6 +1004,44 @@ export default function MultiplayerGameLobbyPage() {
                                       }
                                       placeholder="Custom rules (optional)"
                                     />
+                                  </div>
+
+                                  <div className="space-y-3 rounded-lg border p-4">
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="checkbox"
+                                        id="password-protect-room"
+                                        checked={passwordProtectRoom}
+                                        onChange={(e) =>
+                                          setPasswordProtectRoom(e.target.checked)
+                                        }
+                                        className="h-4 w-4 rounded border"
+                                      />
+                                      <Label
+                                        htmlFor="password-protect-room"
+                                        className="cursor-pointer font-normal"
+                                      >
+                                        Password protect room
+                                      </Label>
+                                    </div>
+                                    {passwordProtectRoom && (
+                                      <div className="space-y-2">
+                                        <Label htmlFor="create-room-pw">
+                                          Room password
+                                        </Label>
+                                        <Input
+                                          id="create-room-pw"
+                                          type="password"
+                                          autoComplete="new-password"
+                                          value={createRoomPassword}
+                                          onChange={(e) =>
+                                            setCreateRoomPassword(
+                                              e.target.value,
+                                            )
+                                          }
+                                        />
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 

@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Users,
   Wifi,
   WifiOff,
-  Copy,
   RefreshCw,
   Play,
   Pause,
@@ -38,12 +37,18 @@ import {
   BOARD_SIZE,
 } from "@/games/multiplayer-games/checkers/checkers-game-multiplayer";
 import { getCurrentPlayer } from "@/lib/player-utils";
-import { multiplayerShareUrl } from "@/lib/multiplayer-share-url";
+import {
+  allowMultiplayerJoin,
+  useMultiplayerRoomGate,
+} from "@/lib/multiplayer-join-gate";
 
 export default function CheckersGamePage() {
   const navigate = useNavigate();
-  const params = useParams();
-  const roomId = params.roomId as string;
+  const location = useLocation();
+  const roomId = useMultiplayerRoomGate("checkers");
+  const roomPasswordFromNav = (
+    location.state as { roomPassword?: string } | undefined
+  )?.roomPassword;
 
   // Game state
   const [gameState, setGameState] = useState<CheckersGameState | null>(null);
@@ -73,22 +78,13 @@ export default function CheckersGamePage() {
     board: (CheckersPiece | null)[][],
   ): CheckersPosition[] => {
     const moves: CheckersPosition[] = [];
-    const directions = piece.isKing
-      ? [
-          [-1, -1],
-          [-1, 1],
-          [1, -1],
-          [1, 1],
-        ]
-      : piece.color === CheckersColor.Red
-        ? [
-            [1, -1],
-            [1, 1],
-          ]
-        : [
-            [-1, -1],
-            [-1, 1],
-          ];
+    // Captures may be in any diagonal for men (American rules); non-capture steps stay forward-only elsewhere
+    const directions = [
+      [-1, -1],
+      [-1, 1],
+      [1, -1],
+      [1, 1],
+    ];
 
     for (const [dRow, dCol] of directions) {
       const jumpRow = position.row + 2 * dRow;
@@ -205,6 +201,7 @@ export default function CheckersGamePage() {
           roomId,
           currentUser.id,
           currentUser.username,
+          roomPasswordFromNav,
         );
         setGameClient(client);
         gameClientRef.current = client;
@@ -221,11 +218,19 @@ export default function CheckersGamePage() {
           );
           setCurrentPlayer(player || null);
 
+          const continuingMultiJump =
+            clonedGameState.status === "playing" &&
+            clonedGameState.mustCapture &&
+            clonedGameState.captureSequence.length > 0 &&
+            player &&
+            player.color === clonedGameState.currentPlayer;
+
           // Clear selection if it's not the player's turn or game is finished
           if (
             player &&
             (player.color !== clonedGameState.currentPlayer ||
-              clonedGameState.status !== "playing")
+              clonedGameState.status !== "playing") &&
+            !continuingMultiJump
           ) {
             setSelectedSquare(null);
             setPossibleMoves([]);
@@ -235,6 +240,7 @@ export default function CheckersGamePage() {
         client.onConnection((connected) => {
           setIsConnected(connected);
           if (connected) {
+            allowMultiplayerJoin(roomId, "checkers");
             toast.success("Connected to checkers game!");
           } else {
             toast.error(
@@ -293,7 +299,7 @@ export default function CheckersGamePage() {
         gameClientRef.current = null;
       }
     };
-  }, [roomId, currentUser]);
+  }, [roomId, currentUser, roomPasswordFromNav]);
 
   // Cleanup effect for component unmount
   useEffect(() => {
@@ -505,18 +511,6 @@ export default function CheckersGamePage() {
       ? "0 0 0 2px #000, inset 0 0 0 1px #000, 0 0 28px rgba(250, 204, 21, 0.55)"
       : "0 0 0 2px #000, inset 0 0 0 1px #000",
   });
-
-  // Copy shareable link to clipboard
-  const copyRoomId = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        multiplayerShareUrl(roomId, "checkers"),
-      );
-      toast.success("Shareable link copied to clipboard");
-    } catch {
-      toast.error("Failed to copy shareable link");
-    }
-  };
 
   // Create new room
   const createNewRoom = () => {
@@ -802,19 +796,8 @@ export default function CheckersGamePage() {
 
               <div className="flex gap-2">
                 <button
-                  onClick={copyRoomId}
-                  className="flex-1 bg-orange-600 border-2 border-orange-400 hover:bg-orange-500 px-3 py-2 text-xs text-white transition-colors"
-                  style={{
-                    fontSize: "8px",
-                    fontFamily: "'Press Start 2P', monospace",
-                    boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
-                  }}
-                >
-                  COPY SHAREABLE LINK
-                </button>
-                <button
                   onClick={createNewRoom}
-                  className="flex-1 bg-purple-600 border-2 border-purple-400 hover:bg-purple-500 px-3 py-2 text-xs text-white transition-colors"
+                  className="w-full bg-purple-600 border-2 border-purple-400 hover:bg-purple-500 px-3 py-2 text-xs text-white transition-colors"
                   style={{
                     fontSize: "8px",
                     fontFamily: "'Press Start 2P', monospace",

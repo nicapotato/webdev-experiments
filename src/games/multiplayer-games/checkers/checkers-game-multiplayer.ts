@@ -6,11 +6,15 @@ export async function getCheckersWebSocketURL(
   roomId: string,
   userId: string,
   username: string,
+  password?: string,
 ): Promise<string> {
   const params = new URLSearchParams({
     userId,
     username: encodeURIComponent(username),
   });
+  if (password !== undefined && password.length > 0) {
+    params.set("password", password);
+  }
 
   return `${getGinWsBase()}/api/checkers/ws/${roomId}?${params.toString()}`;
 }
@@ -20,6 +24,7 @@ export interface ActiveCheckersRoomInfo {
   id: string;
   playerCount: number;
   status: string;
+  passwordProtected?: boolean;
 }
 
 // Fetch active rooms from server
@@ -182,6 +187,7 @@ export class CheckersGameClient {
   private roomId: string;
   private userId: string;
   private username: string;
+  private roomPassword?: string;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectInterval = 5000; // 5 seconds
@@ -189,10 +195,16 @@ export class CheckersGameClient {
   private connectionHandlers: ((connected: boolean) => void)[] = [];
   private errorHandlers: ((error: Error) => void)[] = [];
 
-  constructor(roomId: string, userId: string, username: string) {
+  constructor(
+    roomId: string,
+    userId: string,
+    username: string,
+    roomPassword?: string,
+  ) {
     this.roomId = roomId;
     this.userId = userId;
     this.username = username;
+    this.roomPassword = roomPassword;
   }
 
   // Connect to the WebSocket
@@ -203,6 +215,7 @@ export class CheckersGameClient {
           this.roomId,
           this.userId,
           this.username,
+          this.roomPassword,
         );
         console.log("Connecting to checkers game:", wsUrl);
 

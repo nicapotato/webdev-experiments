@@ -2,11 +2,11 @@ var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 import { g as c, a } from "./gin-DHzzR3IR.js";
-async function i(r, e, t) {
-  const o = new URLSearchParams({ userId: e, username: encodeURIComponent(t) });
-  return `${a()}/api/checkers/ws/${r}?${o.toString()}`;
+async function i(r, e, t, o) {
+  const n = new URLSearchParams({ userId: e, username: encodeURIComponent(t) });
+  return o !== void 0 && o.length > 0 && n.set("password", o), `${a()}/api/checkers/ws/${r}?${n.toString()}`;
 }
-async function d() {
+async function l() {
   try {
     const r = await fetch(`${c()}/api/checkers/active-rooms`);
     if (!r.ok) throw new Error("Failed to fetch active rooms");
@@ -19,10 +19,10 @@ var h = ((r) => (r[r.NoColor = 0] = "NoColor", r[r.Red = 1] = "Red", r[r.Black =
 function m(r) {
   return /^[a-zA-Z0-9_-]+$/.test(r) && r.length > 0 && r.length <= 50;
 }
-function u() {
+function f() {
   return `checkers_${Math.random().toString(36).substr(2, 9)}`;
 }
-const f = 8;
+const u = 8;
 function w(r, e) {
   return r.row === e.row && r.col === e.col;
 }
@@ -37,23 +37,24 @@ function S(r) {
   }
 }
 class g {
-  constructor(e, t, o) {
+  constructor(e, t, o, n) {
     __publicField(this, "ws", null);
     __publicField(this, "roomId");
     __publicField(this, "userId");
     __publicField(this, "username");
+    __publicField(this, "roomPassword");
     __publicField(this, "reconnectAttempts", 0);
     __publicField(this, "maxReconnectAttempts", 5);
     __publicField(this, "reconnectInterval", 5e3);
     __publicField(this, "gameStateHandlers", []);
     __publicField(this, "connectionHandlers", []);
     __publicField(this, "errorHandlers", []);
-    this.roomId = e, this.userId = t, this.username = o;
+    this.roomId = e, this.userId = t, this.username = o, this.roomPassword = n;
   }
   async connect() {
     return new Promise(async (e, t) => {
       try {
-        const o = await i(this.roomId, this.userId, this.username);
+        const o = await i(this.roomId, this.userId, this.username, this.roomPassword);
         console.log("Connecting to checkers game:", o), this.ws = new WebSocket(o), this.ws.onopen = () => {
           console.log(`Connected to checkers game ${this.roomId} as ${this.username}`), this.reconnectAttempts = 0, this.notifyConnectionHandlers(true), e();
         }, this.ws.onmessage = (n) => {
@@ -182,12 +183,12 @@ class g {
   }
 }
 export {
-  f as B,
+  u as B,
   h as C,
-  u as a,
+  f as a,
   S as b,
   g as c,
-  d as g,
+  l as g,
   w as p,
   m as v
 };

@@ -1,18 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Users,
   Wifi,
   WifiOff,
-  Copy,
   RefreshCw,
   Grid3X3,
   RotateCcw,
   Swords,
 } from "lucide-react";
 import { toast } from "sonner";
-import { multiplayerShareUrl } from "@/lib/multiplayer-share-url";
 import {
   FighterGameClient,
   type FighterGameState,
@@ -23,11 +21,18 @@ import {
   renderFighterGame,
 } from "@/games/multiplayer-games/fighter/fighter-game-multiplayer";
 import { getCurrentPlayer } from "@/lib/player-utils";
+import {
+  allowMultiplayerJoin,
+  useMultiplayerRoomGate,
+} from "@/lib/multiplayer-join-gate";
 
 export default function FighterGamePage() {
   const navigate = useNavigate();
-  const params = useParams();
-  const roomId = params.roomId as string;
+  const location = useLocation();
+  const roomId = useMultiplayerRoomGate("fighter");
+  const roomPasswordFromNav = (
+    location.state as { roomPassword?: string } | undefined
+  )?.roomPassword;
 
   // Game state
   const [gameState, setGameState] = useState<FighterGameState | null>(null);
@@ -82,6 +87,7 @@ export default function FighterGamePage() {
           roomId,
           currentUser.id,
           currentUser.username,
+          roomPasswordFromNav,
         );
         setGameClient(client);
         gameClientRef.current = client;
@@ -110,6 +116,7 @@ export default function FighterGamePage() {
         client.onConnection((connected) => {
           setIsConnected(connected);
           if (connected) {
+            allowMultiplayerJoin(roomId, "fighter");
             toast.success("Connected to fighter game!");
           } else {
             toast.error(
@@ -168,7 +175,7 @@ export default function FighterGamePage() {
         gameClientRef.current = null;
       }
     };
-  }, [roomId, currentUser]);
+  }, [roomId, currentUser, roomPasswordFromNav]);
 
   // Cleanup effect for component unmount
   useEffect(() => {
@@ -349,17 +356,6 @@ export default function FighterGamePage() {
     gameClient.sendRestart();
   }, [gameClient]);
 
-  const copyShareLink = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        multiplayerShareUrl(roomId, "fighter"),
-      );
-      toast.success("Shareable link copied to clipboard!");
-    } catch {
-      toast.error("Failed to copy shareable link");
-    }
-  };
-
   // Refresh game state
   const refreshGameState = () => {
     setRefreshTrigger((prev) => prev + 1);
@@ -538,21 +534,6 @@ export default function FighterGamePage() {
                         PLAY AGAIN
                       </Button>
                     )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={copyShareLink}
-                      className="bg-black border-2 border-black hover:bg-gray-900 px-2 py-1.5 text-white"
-                      style={{
-                        fontSize: "7px",
-                        fontFamily: "'Press Start 2P', monospace",
-                        boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #333",
-                      }}
-                    >
-                      <Copy className="h-3.5 w-3.5 mr-1.5 inline" />
-                      COPY LINK
-                    </Button>
                     <Button
                       type="button"
                       variant="outline"

@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Users,
   Wifi,
   WifiOff,
-  Copy,
   RefreshCw,
   Play,
   Pause,
@@ -34,12 +33,18 @@ import {
   type ChessMoveHint,
 } from "@/games/chess/chess-multiplayer-legal";
 import { getCurrentPlayer } from "@/lib/player-utils";
-import { multiplayerShareUrl } from "@/lib/multiplayer-share-url";
+import {
+  allowMultiplayerJoin,
+  useMultiplayerRoomGate,
+} from "@/lib/multiplayer-join-gate";
 
 export default function ChessGamePage() {
   const navigate = useNavigate();
-  const params = useParams();
-  const roomId = params.roomId as string;
+  const location = useLocation();
+  const roomId = useMultiplayerRoomGate("chess");
+  const roomPasswordFromNav = (
+    location.state as { roomPassword?: string } | undefined
+  )?.roomPassword;
 
   // Game state
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
@@ -86,6 +91,7 @@ export default function ChessGamePage() {
           roomId,
           currentUser.id,
           currentUser.username,
+          roomPasswordFromNav,
         );
         setGameClient(client);
         gameClientRef.current = client;
@@ -116,6 +122,7 @@ export default function ChessGamePage() {
         client.onConnection((connected) => {
           setIsConnected(connected);
           if (connected) {
+            allowMultiplayerJoin(roomId, "chess");
             toast.success("Connected to chess game!");
           } else {
             toast.error(
@@ -174,7 +181,7 @@ export default function ChessGamePage() {
         gameClientRef.current = null;
       }
     };
-  }, [roomId, currentUser]);
+  }, [roomId, currentUser, roomPasswordFromNav]);
 
   // Cleanup effect for component unmount
   useEffect(() => {
@@ -310,18 +317,6 @@ export default function ChessGamePage() {
     },
     [selectedSquare, promotionSquare, gameClient],
   );
-
-  // Copy shareable link to clipboard
-  const copyRoomId = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        multiplayerShareUrl(roomId, "chess"),
-      );
-      toast.success("Shareable link copied to clipboard");
-    } catch {
-      toast.error("Failed to copy shareable link");
-    }
-  };
 
   // Create new room
   const createNewRoom = () => {
@@ -593,19 +588,8 @@ export default function ChessGamePage() {
 
             <div className="flex gap-2">
               <button
-                onClick={copyRoomId}
-                className="flex-1 bg-gray-600 border-2 border-gray-400 hover:bg-gray-500 px-3 py-2 text-xs text-white transition-colors"
-                style={{
-                  fontSize: "8px",
-                  fontFamily: "'Press Start 2P', monospace",
-                  boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
-                }}
-              >
-                COPY SHAREABLE LINK
-              </button>
-              <button
                 onClick={createNewRoom}
-                className="flex-1 bg-purple-600 border-2 border-purple-400 hover:bg-purple-500 px-3 py-2 text-xs text-white transition-colors"
+                className="w-full bg-purple-600 border-2 border-purple-400 hover:bg-purple-500 px-3 py-2 text-xs text-white transition-colors"
                 style={{
                   fontSize: "8px",
                   fontFamily: "'Press Start 2P', monospace",

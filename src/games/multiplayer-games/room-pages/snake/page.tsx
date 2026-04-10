@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +14,6 @@ import {
   ArrowLeft,
   Users,
   Wifi,
-  Copy,
   RefreshCw,
   Play,
   Pause,
@@ -32,13 +31,27 @@ import {
   renderGame,
 } from "@/games/multiplayer-games/snake/snake-game-multiplayer";
 import { getCurrentPlayer } from "@/lib/player-utils";
-import { multiplayerShareUrl } from "@/lib/multiplayer-share-url";
+import {
+  allowMultiplayerJoin,
+  useMultiplayerRoomGate,
+} from "@/lib/multiplayer-join-gate";
 
 export default function SnakeGamePage() {
   const navigate = useNavigate();
-  const params = useParams();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { theme } = useTheme();
-  const roomId = params.roomId as string;
+  const roomId = useMultiplayerRoomGate("snake");
+  const roomPasswordFromNav = (
+    location.state as { roomPassword?: string } | undefined
+  )?.roomPassword;
+
+  const requestedTickMs = useMemo(() => {
+    const raw = searchParams.get("tickMs");
+    if (!raw) return undefined;
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) ? n : undefined;
+  }, [searchParams]);
 
   // Game state
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -80,6 +93,8 @@ export default function SnakeGamePage() {
           roomId,
           currentUser.id,
           currentUser.username,
+          requestedTickMs,
+          roomPasswordFromNav,
         );
         setGameClient(client);
         gameClientRef.current = client;
@@ -108,6 +123,7 @@ export default function SnakeGamePage() {
         client.onConnection((connected) => {
           setIsConnected(connected);
           if (connected) {
+            allowMultiplayerJoin(roomId, "snake");
             toast.success("Connected to snake game!");
           } else {
             toast.error(
@@ -166,7 +182,7 @@ export default function SnakeGamePage() {
         gameClientRef.current = null;
       }
     };
-  }, [roomId, currentUser]);
+  }, [roomId, currentUser.id, currentUser.username, requestedTickMs, roomPasswordFromNav]);
 
   // Cleanup effect for component unmount
   useEffect(() => {
@@ -251,18 +267,6 @@ export default function SnakeGamePage() {
       }
     };
   }, [renderGameCanvas]);
-
-  // Copy shareable link to clipboard
-  const copyRoomId = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        multiplayerShareUrl(roomId, "snake"),
-      );
-      toast.success("Shareable link copied to clipboard");
-    } catch {
-      toast.error("Failed to copy shareable link");
-    }
-  };
 
   // Create new room
   const createNewRoom = () => {
@@ -447,6 +451,18 @@ export default function SnakeGamePage() {
                   >
                     PLAYER: {currentUser.username}
                   </span>
+                  {gameState?.tickMs != null && (
+                    <span
+                      className="bg-black text-green-400 px-2 py-1 border border-green-400"
+                      style={{
+                        fontSize: "8px",
+                        fontFamily: "'Press Start 2P', monospace",
+                      }}
+                      title="Server tick interval (lower = faster)"
+                    >
+                      TICK: {gameState.tickMs}ms
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -507,6 +523,17 @@ export default function SnakeGamePage() {
                     </p>
                   </div>
                   <div className="p-4">
+                    {gameState?.tickMs != null && (
+                      <p
+                        className="text-yellow-200/90 mb-4"
+                        style={{
+                          fontSize: "8px",
+                          fontFamily: "'Press Start 2P', monospace",
+                        }}
+                      >
+                        SERVER TICK: {gameState.tickMs}ms
+                      </p>
+                    )}
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <Grid3X3 className="h-4 w-4 text-yellow-400" />
@@ -540,20 +567,6 @@ export default function SnakeGamePage() {
                     </div>
                     {/* Room actions */}
                     <div className="mt-4 grid grid-cols-1 gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={copyRoomId}
-                        className="w-full bg-purple-600 border-2 border-purple-400 hover:bg-purple-500 px-3 py-2 text-xs text-white transition-colors disabled:opacity-100"
-                        style={{
-                          fontSize: "8px",
-                          fontFamily: "'Press Start 2P', monospace",
-                          boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
-                        }}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        COPY SHAREABLE LINK
-                      </Button>
                       <Button
                         variant="outline"
                         size="sm"

@@ -6,11 +6,19 @@ export async function getSnakeWebSocketURL(
   roomId: string,
   userId: string,
   username: string,
+  tickMs?: number,
+  password?: string,
 ): Promise<string> {
   const params = new URLSearchParams({
     userId,
     username: encodeURIComponent(username),
   });
+  if (tickMs !== undefined && Number.isFinite(tickMs)) {
+    params.set("tickMs", String(Math.round(tickMs)));
+  }
+  if (password !== undefined && password.length > 0) {
+    params.set("password", password);
+  }
 
   return `${getGinWsBase()}/api/snake/ws/${roomId}?${params.toString()}`;
 }
@@ -20,6 +28,8 @@ export interface ActiveRoomInfo {
   id: string;
   playerCount: number;
   status: string;
+  /** True when the host set a room password (join must supply it). */
+  passwordProtected?: boolean;
 }
 
 // Fetch active rooms from server
@@ -74,6 +84,8 @@ export interface GameState {
   winner?: string;
   boardWidth: number;
   boardHeight: number;
+  /** Server tick interval in ms (authoritative game speed). */
+  tickMs?: number;
 }
 
 // Validate room ID format
@@ -315,6 +327,9 @@ export class SnakeGameClient {
   private roomId: string;
   private userId: string;
   private username: string;
+  /** Sent on connect/reconnect; omitted for joiners who learn tickMs from game state. */
+  private tickMs?: number;
+  private roomPassword?: string;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectInterval = 5000; // 5 seconds
@@ -322,10 +337,18 @@ export class SnakeGameClient {
   private connectionHandlers: ((connected: boolean) => void)[] = [];
   private errorHandlers: ((error: Error) => void)[] = [];
 
-  constructor(roomId: string, userId: string, username: string) {
+  constructor(
+    roomId: string,
+    userId: string,
+    username: string,
+    tickMs?: number,
+    roomPassword?: string,
+  ) {
     this.roomId = roomId;
     this.userId = userId;
     this.username = username;
+    this.tickMs = tickMs;
+    this.roomPassword = roomPassword;
   }
 
   // Connect to the WebSocket
@@ -336,6 +359,8 @@ export class SnakeGameClient {
           this.roomId,
           this.userId,
           this.username,
+          this.tickMs,
+          this.roomPassword,
         );
         console.log("Connecting to snake game:", wsUrl);
 
