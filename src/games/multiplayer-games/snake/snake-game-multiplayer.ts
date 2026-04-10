@@ -1,6 +1,11 @@
 // Client utilities for snake multiplayer game
 
-import { getGinHttpBase, getGinWsBase } from '@/env/gin'
+import { getGinHttpBase, getGinWsBase } from "@/env/gin";
+import {
+  applySnakeTint,
+  drawSpriteTile,
+  getSegmentSpriteSpec,
+} from "./snake-sprite-draw";
 
 export async function getSnakeWebSocketURL(
   roomId: string,
@@ -50,6 +55,53 @@ export async function getActiveRooms(): Promise<ActiveRoomInfo[]> {
 }
 
 // Shared game utilities and types for both single and multiplayer snake games
+
+/** Resolve `public/` paths for any Vite `base` (e.g. GitHub project pages). */
+function snakePublicAsset(path: string): string {
+  const base = import.meta.env.BASE_URL;
+  const p = path.replace(/^\//, "");
+  return `${base}${p}`;
+}
+
+/** Card / promo art for hub and multiplayer lobby. */
+export const SNAKE_PROMO_IMAGE = snakePublicAsset("games/snake/snake-promo.png");
+/** Large repeating tile, faded behind the playfield (single + multiplayer). */
+export const SNAKE_PLAY_BACKGROUND_TILE = snakePublicAsset(
+  "games/snake/snake-background-1.png",
+);
+/** 3×3 sheet, 62px tiles — single + multiplayer rendering. */
+export const SNAKE_SPRITE_SHEET = snakePublicAsset(
+  "games/snake/snake-spritesheet.png",
+);
+
+let snakeSpriteSheetCache: HTMLImageElement | null = null;
+let snakeSpriteSheetPromise: Promise<HTMLImageElement> | null = null;
+
+/** Preload sheet; safe to call multiple times. */
+export function loadSnakeSpriteSheet(): Promise<HTMLImageElement> {
+  if (snakeSpriteSheetCache) return Promise.resolve(snakeSpriteSheetCache);
+  if (!snakeSpriteSheetPromise) {
+    snakeSpriteSheetPromise = new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        snakeSpriteSheetCache = img;
+        resolve(img);
+      };
+      img.onerror = () =>
+        reject(new Error("Failed to load snake sprite sheet"));
+      img.src = SNAKE_SPRITE_SHEET;
+    });
+  }
+  return snakeSpriteSheetPromise;
+}
+
+void loadSnakeSpriteSheet().catch(() => {
+  /* fallback to rects until retry */
+});
+
+export function isSnakeSpriteSheetReady(): boolean {
+  return snakeSpriteSheetCache !== null;
+}
 
 // Types for snake game
 export interface Position {
@@ -108,21 +160,27 @@ export enum Direction {
   Right = 3,
 }
 
-// Game constants
-export const BOARD_WIDTH = 45;
-export const BOARD_HEIGHT = 30;
-export const CELL_SIZE = 20;
+// Game constants (~30% fewer cells vs 45×30 so the full board fits typical viewports)
+export const BOARD_WIDTH = 32;
+export const BOARD_HEIGHT = 21;
+/** Pixel size per cell — slightly larger than before to keep sprites readable on the smaller grid. */
+export const CELL_SIZE = 24;
 export const CANVAS_WIDTH = BOARD_WIDTH * CELL_SIZE;
 export const CANVAS_HEIGHT = BOARD_HEIGHT * CELL_SIZE;
 export const GAME_SPEED = 150; // milliseconds
 
 // Game utilities
+/** Head at index 0, facing right (matches `Direction.Right`). */
 export function createInitialSnake(): Position[] {
-  return [{ X: 10, Y: 10 }];
+  return [
+    { X: 12, Y: 10 },
+    { X: 11, Y: 10 },
+    { X: 10, Y: 10 },
+  ];
 }
 
 export function createInitialFood(): Position {
-  return { X: 15, Y: 15 };
+  return { X: 20, Y: 10 };
 }
 
 export function generateFood(
@@ -252,40 +310,45 @@ export function renderGame(
     }
   }
 
-  // Draw food
+  const sheet = snakeSpriteSheetCache;
+
+  // Draw food (tile 2 — apple)
   if (gameState.food) {
-    ctx.fillStyle = "#ff0000";
-    ctx.fillRect(
-      gameState.food.position.X * cellSize,
-      gameState.food.position.Y * cellSize,
-      cellSize,
-      cellSize,
-    );
+    const fx = gameState.food.position.X * cellSize;
+    const fy = gameState.food.position.Y * cellSize;
+    if (sheet) {
+      drawSpriteTile(ctx, sheet, fx, fy, cellSize, 2, 0);
+    } else {
+      ctx.fillStyle = "#ff0000";
+      ctx.fillRect(fx, fy, cellSize, cellSize);
+    }
   }
 
-  // Draw snakes
+  // Draw snakes (shared sprite pipeline)
   gameState.snakes.forEach((snake) => {
     if (!snake.alive) return;
 
     snake.body.forEach((segment, index) => {
-      ctx.fillStyle = index === 0 ? snake.color : snake.color + "80"; // Head is solid, body is semi-transparent
-      ctx.fillRect(
-        segment.X * cellSize,
-        segment.Y * cellSize,
-        cellSize,
-        cellSize,
-      );
-
-      // Draw border (only if grid is disabled, otherwise it's redundant)
-      if (!showGrid) {
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 1;
-        ctx.strokeRect(
-          segment.X * cellSize,
-          segment.Y * cellSize,
-          cellSize,
-          cellSize,
+      const x = segment.X * cellSize;
+      const y = segment.Y * cellSize;
+      if (sheet) {
+        const spec = getSegmentSpriteSpec(
+          snake.body,
+          index,
+          snake.direction,
+          gameState.boardWidth,
+          gameState.boardHeight,
         );
+        drawSpriteTile(ctx, sheet, x, y, cellSize, spec.tileIndex, spec.rotation);
+        applySnakeTint(ctx, x, y, cellSize, snake.color);
+      } else {
+        ctx.fillStyle = index === 0 ? snake.color : snake.color + "80";
+        ctx.fillRect(x, y, cellSize, cellSize);
+        if (!showGrid) {
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x, y, cellSize, cellSize);
+        }
       }
     });
   });

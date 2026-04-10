@@ -1,24 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  ArrowLeft,
-  Play,
-  Pause,
-  RotateCcw,
-  Trophy,
-  Clock,
-  Target,
-  Grid3X3,
-} from "lucide-react";
+import { Play, Pause, RotateCcw, Trophy, Target, Grid3X3 } from "lucide-react";
 import {
   BOARD_WIDTH,
   BOARD_HEIGHT,
@@ -35,6 +19,7 @@ import {
   Direction,
   type Position,
 } from "@/games/multiplayer-games/snake/snake-game-multiplayer";
+import { SnakePlayBackground } from "@/games/snake/SnakePlayBackground";
 
 interface Snake {
   body: Position[];
@@ -53,10 +38,11 @@ enum GameStatus {
   GameOver = "gameOver",
 }
 
+const arcadeFont = "'Press Start 2P', monospace";
+
 export default function SnakeSinglePlayerPage() {
   const navigate = useNavigate();
 
-  // Game state
   const [snake, setSnake] = useState<Snake>({
     body: createInitialSnake(),
     direction: Direction.Right,
@@ -68,15 +54,11 @@ export default function SnakeSinglePlayerPage() {
   const [highScore, setHighScore] = useState(0);
   const [gameSpeed, setGameSpeed] = useState(150);
   const [showGrid, setShowGrid] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameLoopRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastMoveTime = useRef<number>(0);
 
-  // Game constants (imported from shared utilities)
-
-  // Load high score on mount
   useEffect(() => {
     const savedHighScore = localStorage.getItem("snake-high-score");
     if (savedHighScore) {
@@ -84,23 +66,10 @@ export default function SnakeSinglePlayerPage() {
     }
   }, []);
 
-  // Generate random food position (using shared utility)
   const generateFoodPosition = useCallback((): Position => {
     return generateFood(BOARD_WIDTH, BOARD_HEIGHT, snake.body);
   }, [snake.body]);
 
-  // Check collision with self (walls now wrap around)
-  const checkCollision = useCallback(
-    (head: Position, body: Position[]): boolean => {
-      // Self collision
-      return body.some(
-        (segment) => segment.X === head.X && segment.Y === head.Y,
-      );
-    },
-    [],
-  );
-
-  // Move snake (using shared utility)
   const moveSnakeLogic = useCallback(() => {
     if (gameStatus !== GameStatus.Playing) return;
 
@@ -112,15 +81,12 @@ export default function SnakeSinglePlayerPage() {
         BOARD_HEIGHT,
       );
 
-      // Check collision (only self collision now)
       if (collided) {
         setGameStatus(GameStatus.GameOver);
         return { ...prevSnake, alive: false };
       }
 
-      // Check food collision
       if (checkFoodCollision(newSnake[0], food.position)) {
-        // Grow snake (don't remove tail)
         setScore((prev) => {
           const newScore = prev + 10;
           if (newScore > highScore) {
@@ -131,12 +97,10 @@ export default function SnakeSinglePlayerPage() {
         });
         setFood({ position: generateFoodPosition() });
 
-        // Increase speed slightly
         setGameSpeed((prev) => Math.max(80, prev - 5));
 
         return { ...prevSnake, body: newSnake };
       } else {
-        // Remove tail
         const newBody = [...newSnake];
         newBody.pop();
         return { ...prevSnake, body: newBody };
@@ -144,7 +108,6 @@ export default function SnakeSinglePlayerPage() {
     });
   }, [gameStatus, food.position, generateFoodPosition, highScore]);
 
-  // Game loop
   useEffect(() => {
     if (gameStatus === GameStatus.Playing) {
       gameLoopRef.current = setInterval(moveSnakeLogic, gameSpeed);
@@ -162,7 +125,30 @@ export default function SnakeSinglePlayerPage() {
     };
   }, [gameStatus, moveSnakeLogic, gameSpeed]);
 
-  // Handle keyboard input
+  const startGame = useCallback(() => {
+    setGameStatus(GameStatus.Playing);
+  }, []);
+
+  const togglePause = useCallback(() => {
+    if (gameStatus === GameStatus.Playing) {
+      setGameStatus(GameStatus.Paused);
+    } else if (gameStatus === GameStatus.Paused) {
+      setGameStatus(GameStatus.Playing);
+    }
+  }, [gameStatus]);
+
+  const restartGame = useCallback(() => {
+    setSnake({
+      body: createInitialSnake(),
+      direction: Direction.Right,
+      alive: true,
+    });
+    setFood({ position: createInitialFood() });
+    setScore(0);
+    setGameSpeed(150);
+    setGameStatus(GameStatus.Waiting);
+  }, []);
+
   const handleKeyPress = useCallback(
     (event: KeyboardEvent) => {
       if (gameStatus === GameStatus.GameOver) return;
@@ -196,7 +182,9 @@ export default function SnakeSinglePlayerPage() {
           break;
         case " ":
           event.preventDefault();
-          if (gameStatus === GameStatus.Playing) {
+          if (gameStatus === GameStatus.Waiting) {
+            startGame();
+          } else if (gameStatus === GameStatus.Playing) {
             setGameStatus(GameStatus.Paused);
           } else if (gameStatus === GameStatus.Paused) {
             setGameStatus(GameStatus.Playing);
@@ -211,16 +199,15 @@ export default function SnakeSinglePlayerPage() {
         setSnake((prev) => ({ ...prev, direction: newDirection! }));
       }
     },
-    [snake.direction, gameStatus],
+    [snake.direction, gameStatus, startGame],
   );
 
-  // Set up keyboard listeners
   useEffect(() => {
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [handleKeyPress]);
 
-  // Canvas rendering (using shared utility with single player adaptation)
+  /** Always `"playing"` for renderGame so multiplayer waiting/finished overlays never draw. */
   const renderGameCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -228,7 +215,6 @@ export default function SnakeSinglePlayerPage() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Convert single player state to multiplayer-compatible format
     const gameState = {
       snakes: [
         {
@@ -242,28 +228,12 @@ export default function SnakeSinglePlayerPage() {
       food: { position: food.position },
       boardWidth: BOARD_WIDTH,
       boardHeight: BOARD_HEIGHT,
-      status:
-        gameStatus === GameStatus.GameOver
-          ? "finished"
-          : gameStatus === GameStatus.Playing
-            ? "playing"
-            : gameStatus === GameStatus.Paused
-              ? "playing"
-              : ("waiting" as "waiting" | "playing" | "finished"),
+      status: "playing" as const,
     };
 
     renderGame(ctx, gameState, CELL_SIZE, showGrid);
 
-    // Draw additional single player overlays
-    if (gameStatus === GameStatus.Waiting) {
-      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "24px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("Press SPACE to Start", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
-    } else if (gameStatus === GameStatus.Paused) {
+    if (gameStatus === GameStatus.Paused) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -298,7 +268,6 @@ export default function SnakeSinglePlayerPage() {
     }
   }, [snake, food, gameStatus, score, showGrid]);
 
-  // Animation loop
   useEffect(() => {
     const animate = () => {
       renderGameCanvas();
@@ -307,34 +276,6 @@ export default function SnakeSinglePlayerPage() {
     animate();
   }, [renderGameCanvas]);
 
-  // Start game
-  const startGame = () => {
-    setGameStatus(GameStatus.Playing);
-  };
-
-  // Pause/Resume game
-  const togglePause = () => {
-    if (gameStatus === GameStatus.Playing) {
-      setGameStatus(GameStatus.Paused);
-    } else if (gameStatus === GameStatus.Paused) {
-      setGameStatus(GameStatus.Playing);
-    }
-  };
-
-  // Restart game
-  const restartGame = () => {
-    setSnake({
-      body: createInitialSnake(),
-      direction: Direction.Right,
-      alive: true,
-    });
-    setFood({ position: createInitialFood() });
-    setScore(0);
-    setGameSpeed(150);
-    setGameStatus(GameStatus.Waiting);
-  };
-
-  // Handle restart key
   useEffect(() => {
     const handleRestartKey = (event: KeyboardEvent) => {
       if (event.key === "r" || event.key === "R") {
@@ -346,191 +287,281 @@ export default function SnakeSinglePlayerPage() {
 
     window.addEventListener("keydown", handleRestartKey);
     return () => window.removeEventListener("keydown", handleRestartKey);
-  }, [gameStatus]);
+  }, [gameStatus, restartGame]);
 
   return (
-    <div className="h-screen w-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between bg-black text-white p-4 border-b border-gray-700 flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/")}
-            className="text-white hover:bg-gray-800"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Snake Game</h1>
-            <p className="text-gray-300">Single Player Mode</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Trophy className="h-4 w-4 text-yellow-500" />
-            <span className="text-sm font-medium">High Score: {highScore}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Target className="h-4 w-4 text-green-500" />
-            <span className="text-sm font-medium">Score: {score}</span>
-          </div>
-        </div>
+    <div
+      className="relative h-screen w-full flex flex-col overflow-hidden bg-black text-white"
+      style={{ fontFamily: arcadeFont }}
+    >
+      <SnakePlayBackground />
+
+      <div className="fixed top-4 right-4 z-[100] flex flex-wrap justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => setIsSidebarOpen((o) => !o)}
+          className="bg-gray-700 border-2 border-yellow-400 hover:bg-yellow-400 hover:text-black text-yellow-400 px-4 py-2 transition-colors"
+          style={{
+            fontSize: "8px",
+            fontFamily: arcadeFont,
+            boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
+          }}
+          aria-pressed={isSidebarOpen}
+          aria-label={isSidebarOpen ? "Hide panel" : "Show panel"}
+        >
+          {isSidebarOpen ? "HIDE PANEL" : "SHOW PANEL"}
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="bg-red-600 border-2 border-red-400 hover:bg-red-500 text-white px-4 py-2 transition-colors"
+          style={{
+            fontSize: "8px",
+            fontFamily: arcadeFont,
+            boxShadow: "0 0 0 2px #000, inset 0 0 0 1px #000",
+          }}
+          aria-label="Back to games"
+        >
+          BACK
+        </button>
       </div>
 
-      <div className="flex flex-1">
-        {/* Game Canvas */}
-        <div className="flex-1 flex items-center justify-center bg-black p-4">
-          <div className="border border-white rounded-lg overflow-hidden shadow-lg">
-            <canvas
-              ref={canvasRef}
-              width={CANVAS_WIDTH}
-              height={CANVAS_HEIGHT}
-              className="block"
-              style={{
-                width: "100%",
-                height: "100%",
-                maxWidth: "900px",
-                maxHeight: "600px",
-                imageRendering: "pixelated",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Game Info Sidebar */}
-        <div className="w-96 bg-gray-900 p-3 overflow-y-auto space-y-3">
-          {/* Game Status & Controls */}
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <Badge
-              variant={
-                gameStatus === GameStatus.Playing
-                  ? "default"
-                  : gameStatus === GameStatus.Paused
-                    ? "secondary"
-                    : gameStatus === GameStatus.GameOver
-                      ? "destructive"
-                      : "outline"
-              }
-              className="text-sm px-3 py-1 flex-shrink-0"
+      <div
+        className={`relative z-10 flex flex-1 min-h-0 pt-14 ${isSidebarOpen ? "lg:flex-row lg:items-stretch lg:gap-0" : "flex-col items-stretch"}`}
+      >
+        <div
+          className={`flex min-h-0 flex-1 flex-col px-3 pb-3 ${isSidebarOpen ? "lg:min-w-0 lg:flex-1" : ""}`}
+        >
+          <div className="mb-2 flex shrink-0 items-start justify-end gap-3 pr-1">
+            <div
+              className="flex items-center gap-2 text-yellow-400"
+              style={{ fontSize: "10px", textShadow: "2px 2px 0 #000" }}
             >
-              {gameStatus === GameStatus.Playing
-                ? "Playing"
-                : gameStatus === GameStatus.Paused
-                  ? "Paused"
-                  : gameStatus === GameStatus.GameOver
-                    ? "Game Over"
-                    : "Ready"}
-            </Badge>
-            <div className="flex gap-1">
-              {gameStatus === GameStatus.Waiting && (
-                <Button onClick={startGame} size="sm">
-                  <Play className="h-3 w-3 mr-1" />
-                  Start
-                </Button>
-              )}
-              {gameStatus === GameStatus.Playing && (
-                <Button onClick={togglePause} variant="secondary" size="sm">
-                  <Pause className="h-3 w-3 mr-1" />
-                  Pause
-                </Button>
-              )}
-              {gameStatus === GameStatus.Paused && (
-                <Button onClick={togglePause} size="sm">
-                  <Play className="h-3 w-3 mr-1" />
-                  Resume
-                </Button>
-              )}
-              {gameStatus === GameStatus.GameOver && (
-                <Button onClick={restartGame} size="sm">
-                  <RotateCcw className="h-3 w-3 mr-1" />
-                  Restart
-                </Button>
-              )}
+              <Trophy className="h-4 w-4 shrink-0 text-yellow-500" />
+              <span>HIGH {highScore}</span>
             </div>
           </div>
 
-          {/* Game Settings */}
-          <Card className="p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Grid3X3 className="h-3 w-3" />
-                <span className="text-xs font-medium">Show Grid</span>
-              </div>
-              <Button
-                variant={showGrid ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowGrid(!showGrid)}
-                className="h-6 px-2 text-xs"
-              >
-                {showGrid ? "ON" : "OFF"}
-              </Button>
-            </div>
-          </Card>
+          <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+            <div
+              className="relative mx-auto w-full max-w-full overflow-hidden rounded-lg border-4 border-yellow-400 bg-black/90"
+              style={{
+                boxShadow:
+                  "0 0 0 4px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(0,0,0,0.8)",
+                width: `min(100%, calc((100vh - 8rem) * ${CANVAS_WIDTH} / ${CANVAS_HEIGHT}))`,
+                aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
+              }}
+            >
+              <canvas
+                ref={canvasRef}
+                width={CANVAS_WIDTH}
+                height={CANVAS_HEIGHT}
+                className="block h-full w-full"
+                style={{
+                  imageRendering: "pixelated",
+                }}
+              />
 
-          {/* Stats */}
-          <Card className="p-3">
-            <div className="text-xs font-medium mb-2 text-gray-300">
-              Game Stats
+              {gameStatus === GameStatus.Waiting && (
+                <div className="pointer-events-auto absolute inset-0 flex flex-col items-center justify-center gap-6 bg-black/70 px-4">
+                  <p
+                    className="text-center text-yellow-300"
+                    style={{ fontSize: "10px", textShadow: "2px 2px 0 #000" }}
+                  >
+                    READY
+                  </p>
+                  <button
+                    type="button"
+                    onClick={startGame}
+                    className="border-4 border-yellow-400 bg-green-600 px-10 py-5 text-black transition-colors hover:bg-green-500"
+                    style={{
+                      fontSize: "14px",
+                      fontFamily: arcadeFont,
+                      boxShadow: "0 0 0 4px #000, inset 0 0 0 2px #000",
+                    }}
+                  >
+                    START
+                  </button>
+                  <p
+                    className="text-center text-gray-400"
+                    style={{ fontSize: "8px" }}
+                  >
+                    OR PRESS SPACE
+                  </p>
+                </div>
+              )}
             </div>
-            <div className="space-y-1 text-xs">
-              <div className="flex justify-between">
-                <span>Score:</span>
-                <span className="font-bold text-green-400">{score}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>High Score:</span>
-                <span className="font-bold text-yellow-400">{highScore}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Length:</span>
-                <span>{snake.body.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Speed:</span>
-                <span>{Math.round((150 - gameSpeed) / 7)}/10</span>
-              </div>
-            </div>
-          </Card>
-
-          {/* Instructions */}
-          <Card className="p-3">
-            <div className="text-xs font-medium mb-2 text-gray-300">
-              How to Play
-            </div>
-            <div className="text-xs space-y-1">
-              <p>
-                • <strong>Arrows/WASD</strong> to move
-              </p>
-              <p>
-                • Eat <span className="text-red-400 font-bold">red food</span>{" "}
-                to grow
-              </p>
-              <p>
-                • <strong>Walls wrap around</strong>
-              </p>
-              <p>
-                • Avoid your <strong>tail</strong>
-              </p>
-              <p>
-                • <strong>SPACE</strong> to pause
-              </p>
-              <p>
-                • <strong>R</strong> to restart
-              </p>
-            </div>
-          </Card>
-
-          {/* Quick Tips */}
-          <Card className="p-3">
-            <div className="text-xs font-medium mb-2 text-gray-300">Tips</div>
-            <div className="text-xs space-y-1">
-              <p>• Use wrap-around walls for shortcuts</p>
-              <p>• Game speeds up as you eat</p>
-              <p>• Fill the board for max score</p>
-            </div>
-          </Card>
+          </div>
         </div>
+
+        {isSidebarOpen && (
+          <aside
+            className="w-full shrink-0 overflow-y-auto border-t-4 border-yellow-400 bg-black p-4 lg:w-96 lg:border-l-4 lg:border-t-0"
+            style={{ boxShadow: "inset 4px 0 8px rgba(0,0,0,0.5)" }}
+          >
+            <div
+              className="mb-4 border-4 border-yellow-400 bg-gray-900"
+              style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.8)" }}
+            >
+              <div className="border-b-4 border-yellow-400 bg-yellow-400 px-3 py-2">
+                <h2
+                  className="font-bold text-black"
+                  style={{ fontSize: "10px", fontFamily: arcadeFont }}
+                >
+                  SNAKE — SINGLE
+                </h2>
+              </div>
+
+              <div className="space-y-3 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Badge
+                    variant={
+                      gameStatus === GameStatus.Playing
+                        ? "default"
+                        : gameStatus === GameStatus.Paused
+                          ? "secondary"
+                          : gameStatus === GameStatus.GameOver
+                            ? "destructive"
+                            : "outline"
+                    }
+                    className="shrink-0 text-xs"
+                  >
+                    {gameStatus === GameStatus.Playing
+                      ? "PLAYING"
+                      : gameStatus === GameStatus.Paused
+                        ? "PAUSED"
+                        : gameStatus === GameStatus.GameOver
+                          ? "GAME OVER"
+                          : "READY"}
+                  </Badge>
+                  <div className="flex flex-wrap gap-1">
+                    {gameStatus === GameStatus.Waiting && (
+                      <Button
+                        onClick={startGame}
+                        size="sm"
+                        className="border-2 border-yellow-400 bg-green-600 text-white hover:bg-green-500"
+                        style={{ fontSize: "8px", fontFamily: arcadeFont }}
+                      >
+                        <Play className="mr-1 h-3 w-3" />
+                        START
+                      </Button>
+                    )}
+                    {gameStatus === GameStatus.Playing && (
+                      <Button
+                        onClick={togglePause}
+                        variant="secondary"
+                        size="sm"
+                        style={{ fontSize: "8px", fontFamily: arcadeFont }}
+                      >
+                        <Pause className="mr-1 h-3 w-3" />
+                        PAUSE
+                      </Button>
+                    )}
+                    {gameStatus === GameStatus.Paused && (
+                      <Button
+                        onClick={togglePause}
+                        size="sm"
+                        className="border-2 border-yellow-400"
+                        style={{ fontSize: "8px", fontFamily: arcadeFont }}
+                      >
+                        <Play className="mr-1 h-3 w-3" />
+                        RESUME
+                      </Button>
+                    )}
+                    {gameStatus === GameStatus.GameOver && (
+                      <Button
+                        onClick={restartGame}
+                        size="sm"
+                        style={{ fontSize: "8px", fontFamily: arcadeFont }}
+                      >
+                        <RotateCcw className="mr-1 h-3 w-3" />
+                        RESTART
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  className="border-2 border-gray-600 bg-black/80 p-3"
+                  style={{ boxShadow: "0 0 0 2px #000" }}
+                >
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-yellow-200">
+                      <Grid3X3 className="h-3 w-3" />
+                      <span style={{ fontSize: "8px" }}>GRID</span>
+                    </div>
+                    <Button
+                      variant={showGrid ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setShowGrid(!showGrid)}
+                      className="h-7 px-2"
+                      style={{ fontSize: "8px", fontFamily: arcadeFont }}
+                    >
+                      {showGrid ? "ON" : "OFF"}
+                    </Button>
+                  </div>
+                </div>
+
+                <div
+                  className="border-2 border-gray-600 bg-black/80 p-3"
+                  style={{ boxShadow: "0 0 0 2px #000" }}
+                >
+                  <div
+                    className="mb-2 text-yellow-400"
+                    style={{ fontSize: "8px" }}
+                  >
+                    STATS
+                  </div>
+                  <div className="space-y-1" style={{ fontSize: "8px" }}>
+                    <div className="flex justify-between gap-2 text-gray-300">
+                      <span className="flex items-center gap-1">
+                        <Target className="h-3 w-3 text-green-400" />
+                        SCORE
+                      </span>
+                      <span className="font-bold text-green-400">{score}</span>
+                    </div>
+                    <div className="flex justify-between gap-2 text-gray-300">
+                      <span className="flex items-center gap-1">
+                        <Trophy className="h-3 w-3 text-yellow-500" />
+                        HIGH
+                      </span>
+                      <span className="font-bold text-yellow-400">
+                        {highScore}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>LEN</span>
+                      <span>{snake.body.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>SPD</span>
+                      <span>{Math.round((150 - gameSpeed) / 7)}/10</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="border-2 border-gray-600 bg-black/80 p-3"
+                  style={{ boxShadow: "0 0 0 2px #000" }}
+                >
+                  <div
+                    className="mb-2 text-yellow-400"
+                    style={{ fontSize: "8px" }}
+                  >
+                    HOW TO PLAY
+                  </div>
+                  <div className="space-y-1 text-gray-300" style={{ fontSize: "8px" }}>
+                    <p>ARROWS / WASD — MOVE</p>
+                    <p>EAT APPLES — GROW</p>
+                    <p>WALLS WRAP</p>
+                    <p>SPACE — PAUSE</p>
+                    <p>R — RESTART (GAME OVER)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        )}
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import {
   generateRoomId,
   validateRoomId,
   getActiveRooms,
+  SNAKE_PROMO_IMAGE,
   type ActiveRoomInfo,
 } from "@/games/multiplayer-games/snake/snake-game-multiplayer";
 import {
@@ -60,7 +61,7 @@ const gameConfigs: Record<GameKey, GameConfig> = {
     name: "Snake",
     maxPlayers: 8,
     styles: ["Classic", "Speed", "Maze"],
-    image: "/games/snake/multiplayer-snake.jpg",
+    image: SNAKE_PROMO_IMAGE,
     details:
       "Compete with 2-8 players in this fast-paced snake game. Last snake standing wins!",
   },

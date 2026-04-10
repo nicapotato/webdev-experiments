@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/SnakeSinglePlayerPage-hHRW9RMg.js","assets/button-qo_KCcUR.js","assets/utils-CqPFCyuf.js","assets/badge-Cju3upr0.js","assets/snake-game-multiplayer-BzWLKIQD.js","assets/createLucideIcon-BFFgSLy4.js","assets/gin-DHzzR3IR.js","assets/rotate-ccw-CcjX7UQ6.js","assets/grid-3x3-Bw_y8kav.js","assets/TypingPage-BueiJ37R.js","assets/page-CRwIAjAP.js","assets/chess-game-multiplayer-XMnaIFi4.js","assets/checkers-game-multiplayer-BKVBYG5z.js","assets/fighter-game-multiplayer-DyF09_Ov.js","assets/multiplayer-join-gate-BCfMKsXN.js","assets/users-BTJDqaOO.js","assets/page-DfR7ysFQ.js","assets/player-utils-sDKa8flh.js","assets/wifi-C3TPAEC5.js","assets/page-CNtLS_fW.js","assets/ChessBoardMultiplayer-JaYwuDuF.js","assets/page-BvMP9WCI.js","assets/page-xMI9m2Zg.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/SnakeSinglePlayerPage-BXwBqR1L.js","assets/button-D-kmfqC9.js","assets/utils-CO_k8hEn.js","assets/badge-C7BIJ3u4.js","assets/snake-game-multiplayer-HojqPLVm.js","assets/gin-DHzzR3IR.js","assets/SnakePlayBackground-kEsXwql9.js","assets/createLucideIcon-C6AFw-_j.js","assets/rotate-ccw-BYoUNIHK.js","assets/grid-3x3-6ExqiN75.js","assets/TypingPage-k3ZT7Hld.js","assets/page-C0pb9wzg.js","assets/chess-game-multiplayer-XMnaIFi4.js","assets/checkers-game-multiplayer-BKVBYG5z.js","assets/fighter-game-multiplayer-DyF09_Ov.js","assets/multiplayer-join-gate-DCBl9E8O.js","assets/users-917X1AQ7.js","assets/arrow-left-iac-O2xV.js","assets/page-CimH6JAu.js","assets/player-utils-sDKa8flh.js","assets/wifi-mvvv7C4K.js","assets/page-CckUpzDj.js","assets/ChessBoardMultiplayer-Bn89UPST.js","assets/page-CItU7HtB.js","assets/page-ByYcrNb6.js"])))=>i.map(i=>d[i]);
 let e1, g0, wl, U, Pb, wa, od, v1, ly, b1, At, S0, Gt, i1, ja, S, u1, Ib, Fb, pv, v, x1, Lr, S1;
 let __tla = (async () => {
   function j0(e, t) {
@@ -13254,12 +13254,12 @@ Please change the parent <Route path="${R}"> to <Route path="${R === "/" ? "*" :
         })
       ]
     });
-  }, s1 = v.lazy(() => wa(() => import("./page-C1VUNiw7.js").then(async (m) => {
+  }, s1 = v.lazy(() => wa(() => import("./page-BGoSXjqp.js").then(async (m) => {
     await m.__tla;
     return m;
-  }), [])), r1 = v.lazy(() => wa(() => import("./SnakeSinglePlayerPage-hHRW9RMg.js"), __vite__mapDeps([0,1,2,3,4,5,6,7,8])).then((e) => ({
+  }), [])), r1 = v.lazy(() => wa(() => import("./SnakeSinglePlayerPage-BXwBqR1L.js"), __vite__mapDeps([0,1,2,3,4,5,6,7,8,9])).then((e) => ({
     default: e.default
-  }))), o1 = v.lazy(() => wa(() => import("./TypingPage-BueiJ37R.js"), __vite__mapDeps([9,1,2]))), f1 = v.lazy(() => wa(() => import("./page-CRwIAjAP.js"), __vite__mapDeps([10,2,5,3,4,6,11,12,13,14,15]))), d1 = v.lazy(() => wa(() => import("./page-DfR7ysFQ.js"), __vite__mapDeps([16,1,2,4,5,6,17,14,15,8,18]))), h1 = v.lazy(() => wa(() => import("./page-CNtLS_fW.js"), __vite__mapDeps([19,20,11,6,17,14]))), m1 = v.lazy(() => wa(() => import("./page-BvMP9WCI.js"), __vite__mapDeps([21,20,11,6,12,17,14]))), y1 = v.lazy(() => wa(() => import("./page-xMI9m2Zg.js"), __vite__mapDeps([22,1,2,13,6,17,14,5,18,7,15,8])));
+  }))), o1 = v.lazy(() => wa(() => import("./TypingPage-k3ZT7Hld.js"), __vite__mapDeps([10,1,2]))), f1 = v.lazy(() => wa(() => import("./page-C0pb9wzg.js"), __vite__mapDeps([11,2,7,3,4,5,12,13,14,15,16,17]))), d1 = v.lazy(() => wa(() => import("./page-CimH6JAu.js"), __vite__mapDeps([18,1,2,4,5,19,15,6,17,7,16,9,20]))), h1 = v.lazy(() => wa(() => import("./page-CckUpzDj.js"), __vite__mapDeps([21,22,12,5,19,15]))), m1 = v.lazy(() => wa(() => import("./page-CItU7HtB.js"), __vite__mapDeps([23,22,12,5,13,19,15]))), y1 = v.lazy(() => wa(() => import("./page-ByYcrNb6.js"), __vite__mapDeps([24,1,2,14,5,19,15,7,20,8,16,9])));
   function p1() {
     return S.jsxs(yb, {
       attribute: "class",

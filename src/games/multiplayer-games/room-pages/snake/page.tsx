@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
-import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,12 +34,12 @@ import {
   allowMultiplayerJoin,
   useMultiplayerRoomGate,
 } from "@/lib/multiplayer-join-gate";
+import { SnakePlayBackground } from "@/games/snake/SnakePlayBackground";
 
 export default function SnakeGamePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { theme } = useTheme();
   const roomId = useMultiplayerRoomGate("snake");
   const roomPasswordFromNav = (
     location.state as { roomPassword?: string } | undefined
@@ -277,11 +276,12 @@ export default function SnakeGamePage() {
   if (isLoading) {
     return (
       <div
-        className="flex items-center justify-center h-screen bg-black"
+        className="relative flex items-center justify-center h-screen bg-black overflow-hidden"
         style={{ fontFamily: "'Press Start 2P', monospace" }}
       >
+        <SnakePlayBackground />
         <div
-          className="bg-gray-900 border-4 border-yellow-400 rounded-lg p-8"
+          className="relative z-10 bg-gray-900 border-4 border-yellow-400 rounded-lg p-8"
           style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.8)" }}
         >
           <div className="text-center">
@@ -308,16 +308,7 @@ export default function SnakeGamePage() {
         fontFamily: "'Press Start 2P', monospace",
       }}
     >
-      {/* Background layer */}
-      <div
-        className="absolute inset-0 opacity-35"
-        style={{
-          backgroundImage: `url('/art/${theme === "dark" ? "background-gold-dark-1.jpg" : "background-gold-light-1.jpg"}')`,
-          backgroundRepeat: "repeat",
-          // Make tiles smaller for a denser pattern
-          backgroundSize: "160px 160px",
-        }}
-      />
+      <SnakePlayBackground />
       {/* Content layer */}
       <div className="relative z-10 h-full flex flex-col">
         {/* Fixed positioned buttons */}
@@ -469,24 +460,24 @@ export default function SnakeGamePage() {
           </div>
         </div>
 
-        <div className="flex flex-1 relative">
-          {/* Game Canvas */}
-          <div className="flex-1 flex items-center justify-center bg-transparent p-4 relative z-10">
+        <div className="flex flex-1 relative min-h-0">
+          {/* Game Canvas — size so full board stays visible (no crop / zoom) */}
+          <div className="flex flex-1 min-h-0 items-center justify-center overflow-hidden bg-transparent p-4 relative z-10">
             <div
-              className="border-4 border-yellow-400 rounded-lg overflow-hidden shadow-lg bg-black/90"
+              className="mx-auto w-full max-w-full overflow-hidden rounded-lg border-4 border-yellow-400 bg-black/90"
               style={{
                 boxShadow:
                   "0 0 0 4px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(0,0,0,0.8)",
+                width: `min(100%, calc((100vh - 10rem) * ${CANVAS_WIDTH} / ${CANVAS_HEIGHT}))`,
+                aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
               }}
             >
               <canvas
                 ref={canvasRef}
                 width={CANVAS_WIDTH}
                 height={CANVAS_HEIGHT}
-                className="block"
+                className="block h-full w-full"
                 style={{
-                  width: "100%",
-                  height: "100%",
                   imageRendering: "pixelated",
                 }}
               />
