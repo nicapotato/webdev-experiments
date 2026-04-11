@@ -37,6 +37,7 @@ import {
   allowMultiplayerJoin,
   useMultiplayerRoomGate,
 } from "@/lib/multiplayer-join-gate";
+import { createTurnBecameMineNotifier } from "@/lib/turn-notification-sound";
 
 export default function ChessGamePage() {
   const navigate = useNavigate();
@@ -96,6 +97,8 @@ export default function ChessGamePage() {
         setGameClient(client);
         gameClientRef.current = client;
 
+        const notifyTurnBecameMine = createTurnBecameMineNotifier();
+
         // Set up event handlers
         client.onGameState((newGameState) => {
           // Force a deep clone to ensure React detects the change
@@ -107,6 +110,12 @@ export default function ChessGamePage() {
             (p: ChessPlayer) => p.id === currentUser.id,
           );
           setCurrentPlayer(player || null);
+
+          notifyTurnBecameMine({
+            status: clonedGameState.status,
+            serverCurrentPlayer: clonedGameState.currentPlayer,
+            myColor: player?.color,
+          });
 
           // Clear selection if it's not the player's turn or game is finished
           if (
