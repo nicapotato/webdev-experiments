@@ -171,6 +171,31 @@ body,
   }
 }
 
+.multiplayer-lobby__game-grid--compact {
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, 140px), 1fr)
+  );
+  gap: 0.75rem;
+}
+
+@media screen and (min-width: 640px) {
+  .multiplayer-lobby__game-grid--compact {
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(min(100%, 160px), 1fr)
+    );
+    gap: 0.85rem;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .multiplayer-lobby__game-grid--compact {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.9rem;
+  }
+}
+
 .multiplayer-lobby__game-grid > .hub-card {
   width: 100%;
   flex: none;
@@ -178,6 +203,11 @@ body,
 
 .hub__header {
   margin-bottom: 2.25rem;
+}
+
+/* Clear fixed .floating-back (z-index) — inset title row */
+.hub__header--multiplayer {
+  padding-left: 45px;
 }
 
 /* CV-style Press Start 2P headings (see #colorlib-main h2.nt-pixel-heading) */
@@ -293,6 +323,32 @@ body,
   text-rendering: optimizeSpeed;
   font-kerning: none;
   font-variant-ligatures: none;
+}
+
+/* Hub: single multiplayer CTA listing all lobby games */
+.hub-card--multiplayer-cta {
+  flex: 1 1 100%;
+  min-width: 100%;
+  min-height: clamp(5.5rem, 16vw, 8rem);
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 1.25rem 1rem;
+}
+
+.hub-card__multiplayer-names {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem 0.85rem;
+  width: 100%;
+}
+
+.hub-card__multiplayer-names .hub-card__title {
+  font-size: clamp(0.44rem, 1.65vw, 0.62rem);
+  line-height: 1.5;
 }
 
 /* One distinct palette per card (ink border on all) */
@@ -679,6 +735,29 @@ body,
   outline-offset: 2px;
 }
 
+.multiplayer-lobby__game-card--compact {
+  min-height: clamp(9.5rem, 22vw, 12.5rem);
+}
+
+.multiplayer-lobby__game-card-title--compact {
+  font-size: clamp(0.72rem, 2.4vw, 1rem);
+  line-height: 1.35;
+}
+
+.multiplayer-lobby__game-card-meta--compact {
+  font-size: 0.58rem;
+  line-height: 1.35;
+}
+
+.multiplayer-lobby__game-card-labels--compact {
+  padding: 0.45rem 0.5rem 0.55rem;
+  gap: 0.2rem;
+}
+
+.multiplayer-lobby__game-card-emoji--compact {
+  font-size: clamp(1.75rem, 7vw, 2.25rem);
+}
+
 .multiplayer-lobby__inline-code {
   font-family:
     ui-monospace,
@@ -721,14 +800,6 @@ body,
   line-height: 1.4;
   letter-spacing: 0.01em;
   color: rgba(232, 234, 237, 0.88);
-}
-
-.multiplayer-lobby__lede {
-  font-size: 0.9375rem;
-  line-height: 1.55;
-  color: rgba(232, 234, 237, 0.72);
-  margin: 1.25rem 0 0;
-  max-width: 52rem;
 }
 
 .multiplayer-lobby__hint {
@@ -1241,10 +1312,6 @@ body,
 
   .multiplayer-lobby__body-text {
     color: rgba(31, 35, 40, 0.88);
-  }
-
-  .multiplayer-lobby__lede {
-    color: rgba(31, 35, 40, 0.72);
   }
 
   .multiplayer-lobby__label {

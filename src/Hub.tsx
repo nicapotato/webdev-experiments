@@ -64,20 +64,22 @@ export function Hub() {
             Online Multiplayer
           </h2>
           <div className="hub__grid">
-            {HUB_MULTIPLAYER_ENTRIES.map((e, i) => (
-              <Link
-                key={e.id}
-                to="/multiplayer"
-                className={`hub-card ${
-                  HUB_CARD_COLOR_CLASSES[
-                    (HUB_PERSONAL_ENTRIES.length + i) %
-                      HUB_CARD_COLOR_CLASSES.length
-                  ]
-                }`}
-              >
-                <span className="hub-card__title">{e.title.toUpperCase()}</span>
-              </Link>
-            ))}
+            <Link
+              to="/multiplayer"
+              className={`hub-card hub-card--multiplayer-cta ${
+                HUB_CARD_COLOR_CLASSES[
+                  HUB_PERSONAL_ENTRIES.length % HUB_CARD_COLOR_CLASSES.length
+                ]
+              }`}
+            >
+              <span className="hub-card__multiplayer-names">
+                {HUB_MULTIPLAYER_ENTRIES.map((e) => (
+                  <span key={e.id} className="hub-card__title">
+                    {e.title.toUpperCase()}
+                  </span>
+                ))}
+              </span>
+            </Link>
           </div>
         </section>
 
@@ -110,9 +112,7 @@ export function Hub() {
                 to={e.kind === "iframe" ? `/play/${e.id}` : e.path}
                 className={`hub-card ${
                   HUB_CARD_COLOR_CLASSES[
-                    (HUB_PERSONAL_ENTRIES.length +
-                      HUB_MULTIPLAYER_ENTRIES.length +
-                      i) %
+                    (HUB_PERSONAL_ENTRIES.length + 1 + i) %
                       HUB_CARD_COLOR_CLASSES.length
                   ]
                 }`}

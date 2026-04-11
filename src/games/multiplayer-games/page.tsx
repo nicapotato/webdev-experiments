@@ -441,7 +441,7 @@ export default function MultiplayerGameLobbyPage() {
       <FloatingBackButton to="/" label="Back to hub" />
 
       <div className="hub hub--multiplayer-wide pb-8">
-        <header className="hub__header">
+        <header className="hub__header hub__header--multiplayer">
           <div className="flex flex-wrap items-start justify-between gap-4 gap-y-2 mb-0">
             <div className="min-w-0 flex-1 max-w-[min(100%,28rem)]">
               <h1 className="hub__title--pixel">MULTIPLAYER</h1>
@@ -453,79 +453,7 @@ export default function MultiplayerGameLobbyPage() {
               SINGLE PLAYER GALLERY →
             </Link>
           </div>
-          <p className="multiplayer-lobby__lede">
-            Tap a game card or use the table filters. Use{" "}
-            <strong>CREATE GAME</strong> to host (pick the game in the dialog
-            first).
-          </p>
         </header>
-
-        <section className="mb-8" aria-labelledby="pick-game-heading">
-          <h2
-            id="pick-game-heading"
-            className="hub__subtitle--pixel mb-4 !text-[clamp(0.42rem,1.55vw,0.55rem)]"
-          >
-            CHOOSE A GAME
-          </h2>
-          <div className="multiplayer-lobby__game-grid">
-            {GAME_ORDER.map((gameKey, i) => {
-              const config = gameConfigs[gameKey];
-              const selected = selectedFilterGames.has(gameKey);
-              return (
-                <button
-                  key={gameKey}
-                  type="button"
-                  onClick={() => toggleFilterGame(gameKey)}
-                  className={cn(
-                    "hub-card multiplayer-lobby__game-card text-left",
-                    GAME_HUB_CARD_CLASSES[i],
-                    selected && "multiplayer-lobby__game-card--selected",
-                  )}
-                >
-                  <div className="multiplayer-lobby__game-card-inner">
-                    {config.image ? (
-                      <img
-                        src={config.image}
-                        alt=""
-                        className="multiplayer-lobby__game-card-bg"
-                      />
-                    ) : config.gradient ? (
-                      <div
-                        className={cn(
-                          "multiplayer-lobby__game-card-bg flex items-center justify-center",
-                          config.gradient,
-                        )}
-                        aria-hidden
-                      >
-                        {config.emoji ? (
-                          <span className="multiplayer-lobby__game-card-emoji">
-                            {config.emoji}
-                          </span>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    <div
-                      className="multiplayer-lobby__game-card-scrim"
-                      aria-hidden
-                    />
-                    <div
-                      className="multiplayer-lobby__game-card-banner multiplayer-lobby__game-card-banner--black"
-                      aria-hidden
-                    />
-                    <div className="multiplayer-lobby__game-card-labels">
-                      <span className="multiplayer-lobby__game-card-title">
-                        {config.name}
-                      </span>
-                      <span className="multiplayer-lobby__game-card-meta">
-                        MAX {config.maxPlayers} PLAYERS
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
 
         {selectedGameForCreate ? (
           <section
@@ -1048,6 +976,76 @@ export default function MultiplayerGameLobbyPage() {
               </table>
             </div>
           )}
+
+          <div className="mt-8 pt-6 border-t border-[rgba(45,53,64,0.85)]">
+            <h2
+              id="pick-game-heading"
+              className="hub__subtitle--pixel mb-4 !text-[clamp(0.42rem,1.55vw,0.55rem)]"
+            >
+              CHOOSE A GAME
+            </h2>
+            <p className="multiplayer-lobby__body-text !mb-4 !mt-0 text-sm">
+              Tap a card to filter the table above (same as the Game chips).
+            </p>
+            <div className="multiplayer-lobby__game-grid multiplayer-lobby__game-grid--compact">
+              {GAME_ORDER.map((gameKey, i) => {
+                const config = gameConfigs[gameKey];
+                const selected = selectedFilterGames.has(gameKey);
+                return (
+                  <button
+                    key={gameKey}
+                    type="button"
+                    onClick={() => toggleFilterGame(gameKey)}
+                    className={cn(
+                      "hub-card multiplayer-lobby__game-card multiplayer-lobby__game-card--compact text-left",
+                      GAME_HUB_CARD_CLASSES[i],
+                      selected && "multiplayer-lobby__game-card--selected",
+                    )}
+                  >
+                    <div className="multiplayer-lobby__game-card-inner">
+                      {config.image ? (
+                        <img
+                          src={config.image}
+                          alt=""
+                          className="multiplayer-lobby__game-card-bg"
+                        />
+                      ) : config.gradient ? (
+                        <div
+                          className={cn(
+                            "multiplayer-lobby__game-card-bg flex items-center justify-center",
+                            config.gradient,
+                          )}
+                          aria-hidden
+                        >
+                          {config.emoji ? (
+                            <span className="multiplayer-lobby__game-card-emoji multiplayer-lobby__game-card-emoji--compact">
+                              {config.emoji}
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      <div
+                        className="multiplayer-lobby__game-card-scrim"
+                        aria-hidden
+                      />
+                      <div
+                        className="multiplayer-lobby__game-card-banner multiplayer-lobby__game-card-banner--black"
+                        aria-hidden
+                      />
+                      <div className="multiplayer-lobby__game-card-labels multiplayer-lobby__game-card-labels--compact">
+                        <span className="multiplayer-lobby__game-card-title multiplayer-lobby__game-card-title--compact">
+                          {config.name}
+                        </span>
+                        <span className="multiplayer-lobby__game-card-meta multiplayer-lobby__game-card-meta--compact">
+                          MAX {config.maxPlayers} PLAYERS
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </section>
 
         {createGameModalOpen ? (
