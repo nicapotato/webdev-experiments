@@ -55,7 +55,7 @@ export function useOsrsData(): OsrsDataState & { reload: () => void } {
       const res = await fetch(LOCAL_DUCKDB_URL, { cache: "no-cache" });
       if (!res.ok) {
         throw new Error(
-          `Failed to load local DuckDB (${res.status}). Copy osrs-mmg.duckdb to public/games/osrs-mmg/`,
+          `Failed to load local DuckDB (${res.status}). Run: make import-osrs-db`,
         );
       }
       const bytes = await res.arrayBuffer();

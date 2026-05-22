@@ -1,4 +1,4 @@
-import { j as yt, c as ns, g as Bt, r as B, R as A } from "./index-vkHMXXJq.js";
+import { j as yt, c as ns, g as Bt, r as B, R as A } from "./index-DBmo_afS.js";
 import { c as mt } from "./clsx-B-dksMZM.js";
 import { _ as vr, a as pt, b as ws, c as Bn, d as ot } from "./tslib.es6-Xujj8YQZ.js";
 const Ql = "", Gh = "https://prod-public-mindtricks-data.s3.eu-west-2.amazonaws.com/dev/client/osrs-mmg".replace(/\/$/, "") ?? "", WO = `${Gh}/manifest.json`, Tp = "osrs-mmg.duckdb";
@@ -19422,7 +19422,7 @@ function nY() {
     let a = false;
     async function o() {
       const u = await fetch(Ql, { cache: "no-cache" });
-      if (!u.ok) throw new Error(`Failed to load local DuckDB (${u.status}). Copy osrs-mmg.duckdb to public/games/osrs-mmg/`);
+      if (!u.ok) throw new Error(`Failed to load local DuckDB (${u.status}). Run: make import-osrs-db`);
       const l = await u.arrayBuffer(), f = u.headers.get("etag") ?? u.headers.get("last-modified") ?? `${Ql}:${l.byteLength}`;
       let h = null;
       await ey(l, f), a || t({ ready: true, loading: false, error: null, manifest: h, fromCache: false, localMode: true });

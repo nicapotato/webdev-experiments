@@ -1,4 +1,4 @@
-/** Local dev: copy osrs-mmg.duckdb (+ optional manifest.json) to public/games/osrs-mmg/ */
+/** Local dev: run `make import-osrs-db` — files in data/osrs-mmg/ (gitignored, dev server only). */
 export const LOCAL_DUCKDB_URL = import.meta.env.VITE_OSRS_DUCKDB_URL?.trim() ?? "";
 export const LOCAL_MANIFEST_URL = import.meta.env.VITE_OSRS_MANIFEST_URL?.trim() ?? "";
 

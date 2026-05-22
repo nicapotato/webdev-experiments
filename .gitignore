@@ -18,6 +18,10 @@ public/games/**/.git/
 docs/games/**/.git/
 *.local
 
+# Local dev datasets — not committed or deployed (Vite serves /local-data/ in dev only)
+data/**/*.duckdb
+data/**/*.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
