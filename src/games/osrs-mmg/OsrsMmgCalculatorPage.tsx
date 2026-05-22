@@ -19,7 +19,7 @@ function LineTable({
   lines: ReturnType<typeof calcAtKph>["inputs"];
 }) {
   return (
-    <section className="osrs-mmg__panel">
+    <section className="osrs-mmg__panel osrs-mmg__panel--lines">
       <h3>{title}</h3>
       <table className="osrs-mmg__table">
         <thead>
@@ -109,7 +109,7 @@ export default function OsrsMmgCalculatorPage() {
   }
 
   return (
-    <div className="osrs-mmg">
+    <div className="osrs-mmg osrs-mmg--calculator">
       <header className="osrs-mmg__header">
         <p><Link to="/osrs-mmg">← Rankings</Link></p>
         <h1>{activeGuide.methodName}</h1>
@@ -122,7 +122,6 @@ export default function OsrsMmgCalculatorPage() {
           error={data.error}
           manifest={data.manifest}
           fromCache={data.fromCache}
-          localMode={data.localMode}
           onReload={data.reload}
         />
       ) : null}

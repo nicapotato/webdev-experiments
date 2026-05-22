@@ -1366,6 +1366,141 @@ body,
   .multiplayer-lobby__empty-state-hint {
     color: rgba(31, 35, 40, 0.88);
   }
+
+  .osrs-mmg {
+    color: #1f2328;
+  }
+
+  .osrs-mmg__header h1 {
+    color: #0d1117;
+  }
+
+  .osrs-mmg__header p {
+    color: rgba(31, 35, 40, 0.78);
+    opacity: 1;
+  }
+
+  .osrs-mmg__header a {
+    color: #0969da;
+  }
+
+  .osrs-mmg__field select,
+  .osrs-mmg__field input,
+  .osrs-mmg__kph-input,
+  .osrs-mmg__topn-input {
+    border-color: #d0d7de;
+    background: #ffffff;
+    color: #1f2328;
+  }
+
+  .osrs-mmg__topn-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    color: rgba(31, 35, 40, 0.88);
+  }
+
+  .osrs-mmg__topn-input {
+    width: 4.5rem;
+    padding: 0.35rem 0.45rem;
+    border-radius: 0.35rem;
+  }
+
+  .osrs-mmg__kph-row button,
+  .osrs-mmg__toolbar button,
+  .osrs-mmg__rerank-row button,
+  .osrs-mmg__period-row button {
+    border-color: #d0d7de;
+    background: #f6f8fa;
+    color: #1f2328;
+  }
+
+  .osrs-mmg__toolbar button:hover,
+  .osrs-mmg__rerank-row button:hover,
+  .osrs-mmg__period-row button:hover,
+  .osrs-mmg__kph-row button:hover {
+    background: #eaeef2;
+    border-color: #afb8c1;
+  }
+
+  .osrs-mmg__period-row button.is-active {
+    border-color: #0969da;
+    color: #0969da;
+    background: rgba(9, 105, 218, 0.08);
+  }
+
+  .osrs-mmg__summary div,
+  .osrs-mmg__panel {
+    background: #ffffff;
+    border-color: #d0d7de;
+  }
+
+  .osrs-mmg__summary span,
+  .osrs-mmg__kph-unit,
+  .osrs-mmg__muted {
+    color: rgba(31, 35, 40, 0.65);
+    opacity: 1;
+  }
+
+  .osrs-mmg__summary strong {
+    color: #0d1117;
+  }
+
+  .osrs-mmg__panel h3 {
+    color: #0d1117;
+  }
+
+  .osrs-mmg__table th {
+    color: rgba(31, 35, 40, 0.65);
+    font-weight: 600;
+  }
+
+  .osrs-mmg__table th,
+  .osrs-mmg__table td {
+    border-bottom-color: #d0d7de;
+    color: #1f2328;
+  }
+
+  .osrs-mmg__table--rankings a {
+    color: #0969da;
+  }
+
+  .osrs-mmg__table--rankings a:hover {
+    color: #0550ae;
+  }
+
+  .osrs-mmg__banner {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f8fafc;
+  }
+
+  .osrs-mmg__banner button {
+    border-color: #64748b;
+    background: #0f172a;
+    color: #f8fafc;
+  }
+
+  .osrs-mmg__banner button:hover {
+    background: #1e293b;
+    border-color: #94a3b8;
+  }
+
+  .osrs-mmg__banner--error {
+    border-color: #cf222e;
+    background: #ffebe9;
+    color: #82071e;
+  }
+
+  .osrs-mmg__assumption {
+    color: rgba(31, 35, 40, 0.82);
+    opacity: 1;
+  }
+
+  .osrs-mmg__volume-toggle {
+    color: rgba(31, 35, 40, 0.88);
+  }
 }
 
 .osrs-mmg {
@@ -1492,6 +1627,12 @@ body,
   background: #1e293b;
   border: 1px solid #334155;
   font-size: 0.9rem;
+  color: #f8fafc;
+}
+
+.osrs-mmg__banner--stale {
+  background: #1e293b;
+  color: #f8fafc;
 }
 
 .osrs-mmg__banner--error {
@@ -1520,6 +1661,22 @@ body,
   gap: 0.5rem;
   margin-bottom: 1rem;
   align-items: center;
+}
+
+.osrs-mmg__topn-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.osrs-mmg__topn-input {
+  width: 4.5rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 0.35rem;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: #f8fafc;
 }
 
 .osrs-mmg__table-scroll {
@@ -1574,4 +1731,33 @@ body,
   align-items: center;
   gap: 0.35rem;
   font-size: 0.85rem;
+}
+
+/* Calculator (/m) pages: white cards and line-item tables */
+.osrs-mmg--calculator .osrs-mmg__summary div,
+.osrs-mmg--calculator .osrs-mmg__panel--lines {
+  background: #ffffff;
+  border-color: #d0d7de;
+  color: #1f2328;
+}
+
+.osrs-mmg--calculator .osrs-mmg__summary span {
+  color: rgba(31, 35, 40, 0.65);
+  opacity: 1;
+}
+
+.osrs-mmg--calculator .osrs-mmg__summary strong,
+.osrs-mmg--calculator .osrs-mmg__panel--lines h3 {
+  color: #0d1117;
+}
+
+.osrs-mmg--calculator .osrs-mmg__panel--lines .osrs-mmg__table th {
+  color: rgba(31, 35, 40, 0.65);
+  font-weight: 600;
+}
+
+.osrs-mmg--calculator .osrs-mmg__panel--lines .osrs-mmg__table th,
+.osrs-mmg--calculator .osrs-mmg__panel--lines .osrs-mmg__table td {
+  color: #1f2328;
+  border-bottom-color: #d0d7de;
 }

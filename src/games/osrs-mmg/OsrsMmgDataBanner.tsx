@@ -1,3 +1,4 @@
+import { isSnapshotOutdated } from "./dataManifest";
 import type { DataManifest } from "./types";
 
 type Props = {
@@ -5,7 +6,6 @@ type Props = {
   error: string | null;
   manifest: DataManifest | null;
   fromCache: boolean;
-  localMode?: boolean;
   onReload: () => void;
 };
 
@@ -14,7 +14,6 @@ export function OsrsMmgDataBanner({
   error,
   manifest,
   fromCache,
-  localMode = false,
   onReload,
 }: Props) {
   if (loading) {
@@ -30,23 +29,12 @@ export function OsrsMmgDataBanner({
       </p>
     );
   }
-  if (!manifest) {
-    if (localMode) {
-      return (
-        <p className="osrs-mmg__banner">
-          Local DuckDB
-          {" · "}
-          <button type="button" onClick={onReload}>
-            Reload
-          </button>
-        </p>
-      );
-    }
+  if (!manifest || !isSnapshotOutdated(manifest)) {
     return null;
   }
 
   return (
-    <p className="osrs-mmg__banner">
+    <p className="osrs-mmg__banner osrs-mmg__banner--stale">
       Data from {manifest.generated_at}
       {manifest.latest_snapshot_date ? ` · snapshot ${manifest.latest_snapshot_date}` : ""}
       {fromCache ? " · cached" : " · fresh download"}

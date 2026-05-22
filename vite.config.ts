@@ -69,7 +69,8 @@ export default defineConfig({
   },
   server: {
     fs: {
-      allow: [LOCAL_DATA_ROOT],
+      // Must include project root (default) plus gitignored ./data for local DuckDB dev.
+      allow: [__dirname, LOCAL_DATA_ROOT],
     },
   },
   worker: {

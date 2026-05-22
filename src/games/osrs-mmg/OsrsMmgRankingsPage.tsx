@@ -38,6 +38,7 @@ export default function OsrsMmgRankingsPage() {
   const [draftKph, setDraftKph] = useState<Record<string, number>>({});
   const [appliedKph, setAppliedKph] = useState<Record<string, number>>({});
   const [prefsVersion, setPrefsVersion] = useState(0);
+  const [showTopN, setShowTopN] = useState(20);
 
   useEffect(() => {
     if (!isLiveDataEnabled()) {
@@ -57,6 +58,7 @@ export default function OsrsMmgRankingsPage() {
   }, [data.ready, prefsVersion]);
 
   const ranked = useMemo(() => rankMethods(rows, appliedKph), [rows, appliedKph]);
+  const visibleRanked = useMemo(() => ranked.slice(0, showTopN), [ranked, showTopN]);
 
   const hasDraftChanges = useMemo(() => {
     return rows.some((row) => {
@@ -101,7 +103,6 @@ export default function OsrsMmgRankingsPage() {
           error={data.error}
           manifest={data.manifest}
           fromCache={data.fromCache}
-          localMode={data.localMode}
           onReload={data.reload}
         />
       ) : (
@@ -113,6 +114,20 @@ export default function OsrsMmgRankingsPage() {
       <OsrsMmgKphToolbar onImported={() => setPrefsVersion((n) => n + 1)} />
 
       <div className="osrs-mmg__rerank-row">
+        <label className="osrs-mmg__topn-field">
+          Show top
+          <input
+            className="osrs-mmg__topn-input"
+            type="number"
+            min={1}
+            max={500}
+            value={showTopN}
+            onChange={(e) => {
+              const next = Math.max(1, Math.min(500, Number(e.target.value) || 1));
+              setShowTopN(next);
+            }}
+          />
+        </label>
         <button type="button" disabled={!hasDraftChanges} onClick={onReRank}>
           Re-rank
         </button>
@@ -134,7 +149,7 @@ export default function OsrsMmgRankingsPage() {
             </tr>
           </thead>
           <tbody>
-            {ranked.map((row, index) => {
+            {visibleRanked.map((row, index) => {
               const kph = draftKph[row.method_id] ?? row.default_kph;
               const adjusted = profitAtKph(row, kph);
               return (

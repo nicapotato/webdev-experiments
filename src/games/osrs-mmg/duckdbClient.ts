@@ -30,7 +30,7 @@ async function getDb(): Promise<duckdb.AsyncDuckDB> {
     dbPromise = (async () => {
       const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);
       const worker = new Worker(bundle.mainWorker!);
-      const logger = new duckdb.ConsoleLogger();
+      const logger = new duckdb.VoidLogger();
       const db = new duckdb.AsyncDuckDB(logger, worker);
       await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
       return db;

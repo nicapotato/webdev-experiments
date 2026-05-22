@@ -24,12 +24,13 @@ type Props = {
 };
 
 const PERIODS: PeriodGranularity[] = ["day", "week", "month", "quarter", "year"];
+const EMPTY_TOP_METHODS: MethodRankRow[] = [];
 
 export function OsrsMmgTrendsPanel({
   mode,
   methodId,
   methodName,
-  topMethods = [],
+  topMethods = EMPTY_TOP_METHODS,
   topN = 10,
 }: Props) {
   const [period, setPeriod] = useState<PeriodGranularity>("week");
@@ -61,7 +62,7 @@ export function OsrsMmgTrendsPanel({
     return () => {
       cancelled = true;
     };
-  }, [mode, methodId, period, topMethods, topN]);
+  }, [mode, methodId, period, topN, mode === "topN" ? topMethods : null]);
 
   const comparisonChartData = useMemo(() => {
     const byPeriod = new Map<string, Record<string, number | string>>();

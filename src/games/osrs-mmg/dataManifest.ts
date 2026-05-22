@@ -16,3 +16,10 @@ export function isManifestStale(
   if (!cachedSha256) return true;
   return remote.artifacts.database.sha256 !== cachedSha256;
 }
+
+/** True when the latest wiki snapshot is before today (UTC). */
+export function isSnapshotOutdated(manifest: DataManifest | null): boolean {
+  if (!manifest?.latest_snapshot_date) return true;
+  const todayUtc = new Date().toISOString().slice(0, 10);
+  return manifest.latest_snapshot_date < todayUtc;
+}
