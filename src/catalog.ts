@@ -18,6 +18,12 @@ export type HubEntry =
 /** Original work and experiments (not from Chris Courses tutorials). */
 export const HUB_PERSONAL_ENTRIES: HubEntry[] = [
   {
+    id: 'osrs-mmg',
+    title: 'OSRS MMG Calculator',
+    kind: 'react',
+    path: '/osrs-mmg',
+  },
+  {
     id: 'motherload',
     title: 'Motherload',
     kind: 'react',

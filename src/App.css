@@ -1367,3 +1367,211 @@ body,
     color: rgba(31, 35, 40, 0.88);
   }
 }
+
+.osrs-mmg {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  color: #e2e8f0;
+  font-family: system-ui, sans-serif;
+}
+
+.osrs-mmg__header h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.6rem;
+}
+
+.osrs-mmg__header p {
+  margin: 0 0 1rem;
+  opacity: 0.85;
+}
+
+.osrs-mmg__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.osrs-mmg__field select,
+.osrs-mmg__field input {
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.35rem;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.osrs-mmg__kph-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.osrs-mmg__kph-row button {
+  padding: 0.45rem 0.8rem;
+  border-radius: 0.35rem;
+  border: 1px solid #64748b;
+  background: #1e293b;
+  color: #f8fafc;
+  cursor: pointer;
+}
+
+.osrs-mmg__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.osrs-mmg__summary div {
+  background: #111827;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.osrs-mmg__summary span {
+  display: block;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.osrs-mmg__summary strong {
+  font-size: 1.1rem;
+}
+
+.osrs-mmg__columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.osrs-mmg__panel {
+  background: #0b1220;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.osrs-mmg__panel h3 {
+  margin: 0 0 0.5rem;
+}
+
+.osrs-mmg__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.osrs-mmg__table th,
+.osrs-mmg__table td {
+  border-bottom: 1px solid #1f2937;
+  padding: 0.35rem 0.25rem;
+  text-align: left;
+}
+
+.osrs-mmg__assumption {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+@media (max-width: 800px) {
+  .osrs-mmg__columns,
+  .osrs-mmg__summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+.osrs-mmg__banner {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.35rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  font-size: 0.9rem;
+}
+
+.osrs-mmg__banner--error {
+  border-color: #b91c1c;
+  background: #450a0a;
+}
+
+.osrs-mmg__banner button,
+.osrs-mmg__toolbar button,
+.osrs-mmg__rerank-row button,
+.osrs-mmg__period-row button {
+  margin-left: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.35rem;
+  border: 1px solid #64748b;
+  background: #1e293b;
+  color: #f8fafc;
+  cursor: pointer;
+}
+
+.osrs-mmg__toolbar,
+.osrs-mmg__rerank-row,
+.osrs-mmg__period-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.osrs-mmg__table-scroll {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.osrs-mmg__table--rankings a {
+  color: #7dd3fc;
+  text-decoration: none;
+}
+
+.osrs-mmg__table--rankings a:hover {
+  text-decoration: underline;
+}
+
+.osrs-mmg__kph-input {
+  width: 6rem;
+  padding: 0.25rem 0.35rem;
+  border-radius: 0.25rem;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.osrs-mmg__kph-unit {
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.osrs-mmg__trends-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.osrs-mmg__period-row button.is-active {
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+.osrs-mmg__muted {
+  opacity: 0.75;
+  font-size: 0.9rem;
+}
+
+.osrs-mmg__volume-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}

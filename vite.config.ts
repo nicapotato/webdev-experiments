@@ -34,4 +34,7 @@ export default defineConfig({
     outDir: 'docs',
     emptyOutDir: true,
   },
+  worker: {
+    format: 'es',
+  },
 })

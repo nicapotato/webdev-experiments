@@ -23,3 +23,6 @@ preview: ## Preview production build (dist output is docs/)
 
 serve-docs: ## After build: static server for ./docs (includes games after build)
 	cd docs && python3 -m http.server 8880 --bind 127.0.0.1
+
+import-db:
+	aws s3 cp s3://prod-public-mindtricks-data/dev/client/osrs-mmg/manifest.json public/games/osrs-mmg/
