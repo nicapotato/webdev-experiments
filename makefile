@@ -15,7 +15,7 @@ help: ## Show targets
 install: ## Install dependencies (bun)
 	bun install
 
-dev: ## Vite dev server (loads .env.dev)
+dev: ## Vite dev server (loads .env.dev) 
 	bun run dev
 
 build: ## Production build → docs/; loads .env.prod (games from public/games/)
