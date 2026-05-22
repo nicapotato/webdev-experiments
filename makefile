@@ -1,4 +1,4 @@
-.PHONY: help install dev build preview serve-docs sync-games-from-src sync-games-from-nextjs import-osrs-db
+.PHONY: help install dev build preview serve-docs sync-games-from-src sync-games-from-nextjs import-osrs-db download-osrs-skill-icons
 
 # Source tree for standalone HTML/Canvas games (adjust if your clones live elsewhere).
 JS_PROJECTS ?= $(HOME)/Documents/repo/project/javascript-projects/2025
@@ -31,3 +31,14 @@ import-osrs-db: ## Download OSRS DuckDB + manifest into gitignored data/osrs-mmg
 	@mkdir -p $(OSRS_DATA_DIR)
 	aws s3 cp $(OSRS_S3_PREFIX)/osrs-mmg.duckdb $(OSRS_DATA_DIR)/
 	aws s3 cp $(OSRS_S3_PREFIX)/manifest.json $(OSRS_DATA_DIR)/
+
+OSRS_ASSETS_DIR := public/osrs-assets
+OSRS_WIKI_IMAGES := https://oldschool.runescape.wiki/images
+OSRS_SKILL_NAMES := Agility Attack Construction Cooking Crafting Defence Farming Firemaking Fishing Fletching Herblore Hitpoints Hunter Magic Mining Prayer Ranged Runecraft Slayer Smithing Strength Thieving Woodcutting
+
+download-osrs-skill-icons: ## Fetch 25x25 skill icons into public/osrs-assets/
+	@mkdir -p $(OSRS_ASSETS_DIR)
+	@for skill in $(OSRS_SKILL_NAMES); do \
+		curl -fsSL "$(OSRS_WIKI_IMAGES)/$${skill}_icon.png" -o "$(OSRS_ASSETS_DIR)/$$(echo $$skill | tr '[:upper:]' '[:lower:]')-icon.png"; \
+	done
+	@curl -fsSL "$(OSRS_WIKI_IMAGES)/Sailing.png" -o "$(OSRS_ASSETS_DIR)/sailing.png"

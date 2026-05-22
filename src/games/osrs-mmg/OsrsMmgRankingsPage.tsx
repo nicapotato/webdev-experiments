@@ -2,16 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { isLiveDataEnabled } from "./dataConfig";
-import { fetchMethodRankings } from "./duckdbQueries";
+import { fetchMethodRankings, fetchMethodSkillsMap } from "./duckdbQueries";
 import { readKphMap, setUserKph, writeKphMap } from "./kphPreferences";
 import { formatGp } from "./mmgCalc";
 import { OsrsMmgDataBanner } from "./OsrsMmgDataBanner";
 import { OsrsMmgKphToolbar } from "./OsrsMmgKphToolbar";
+import { OsrsMmgSkillIcons } from "./OsrsMmgSkillIcons";
 import { OsrsMmgTrendsPanel } from "./OsrsMmgTrendsPanel";
 import { profitAtKph, rankMethods } from "./rankMethods";
 import { SAMPLE_GUIDES } from "./sampleGuides";
-import type { MethodRankRow } from "./types";
+import type { MethodRankRow, SkillRequirement } from "./types";
 import { useOsrsData } from "./useOsrsData";
+
+function sampleSkillsMap(): Record<string, SkillRequirement[]> {
+  return Object.fromEntries(
+    SAMPLE_GUIDES.map((guide) => [guide.id, guide.skillRequirements]),
+  );
+}
 
 function sampleToRankRows(): MethodRankRow[] {
   return SAMPLE_GUIDES.map((g, i) => ({
@@ -39,6 +46,7 @@ export default function OsrsMmgRankingsPage() {
   const [appliedKph, setAppliedKph] = useState<Record<string, number>>({});
   const [prefsVersion, setPrefsVersion] = useState(0);
   const [showTopN, setShowTopN] = useState(20);
+  const [skillsByMethod, setSkillsByMethod] = useState<Record<string, SkillRequirement[]>>({});
 
   useEffect(() => {
     if (!isLiveDataEnabled()) {
@@ -46,12 +54,14 @@ export default function OsrsMmgRankingsPage() {
       setAppliedKph(map);
       setDraftKph(map);
       setRows(sampleToRankRows());
+      setSkillsByMethod(sampleSkillsMap());
       return;
     }
     if (!data.ready) return;
-    void fetchMethodRankings().then((loaded) => {
+    void Promise.all([fetchMethodRankings(), fetchMethodSkillsMap()]).then(([loaded, skills]) => {
       const map = readKphMap();
       setRows(loaded);
+      setSkillsByMethod(skills);
       setAppliedKph(map);
       setDraftKph(map);
     });
@@ -142,6 +152,7 @@ export default function OsrsMmgRankingsPage() {
             <tr>
               <th>#</th>
               <th>Method</th>
+              <th>Skills</th>
               <th>Wiki GP/h</th>
               <th>Your kph</th>
               <th>Adjusted GP/h</th>
@@ -157,6 +168,9 @@ export default function OsrsMmgRankingsPage() {
                   <td>{index + 1}</td>
                   <td>
                     <Link to={`/osrs-mmg/m/${row.method_id}`}>{row.method_name}</Link>
+                  </td>
+                  <td>
+                    <OsrsMmgSkillIcons skills={skillsByMethod[row.method_id] ?? []} compact />
                   </td>
                   <td>{row.wiki_hourly_profit_gp != null ? formatGp(row.wiki_hourly_profit_gp) : "—"}</td>
                   <td>

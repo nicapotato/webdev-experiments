@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { axisTick, OSRS_CHART_THEME, tooltipProps } from "./chartTheme";
 import { fetchTopNComparison, fetchTrendSeries } from "./duckdbQueries";
 import { formatGp } from "./mmgCalc";
 import type { MethodRankRow, PeriodGranularity, TrendPoint } from "./types";
@@ -108,23 +109,34 @@ export function OsrsMmgTrendsPanel({
         </div>
       </div>
 
-      {loading ? <p>Loading chart…</p> : null}
+      {loading ? <p className="osrs-mmg__muted">Loading chart…</p> : null}
 
       {mode === "single" && series.length > 0 ? (
         <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={series}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis dataKey="period" tick={{ fontSize: 11 }} />
-            <YAxis yAxisId="profit" tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
+            <CartesianGrid strokeDasharray="3 3" stroke={OSRS_CHART_THEME.grid} />
+            <XAxis dataKey="period" tick={axisTick} stroke={OSRS_CHART_THEME.axis} />
+            <YAxis
+              yAxisId="profit"
+              tick={axisTick}
+              stroke={OSRS_CHART_THEME.axis}
+              tickFormatter={(v) => `${Math.round(v / 1000)}k`}
+            />
             {showVolume ? (
-              <YAxis yAxisId="volume" orientation="right" tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
+              <YAxis
+                yAxisId="volume"
+                orientation="right"
+                tick={axisTick}
+                stroke={OSRS_CHART_THEME.axis}
+                tickFormatter={(v) => `${Math.round(v / 1000)}k`}
+              />
             ) : null}
-            <Tooltip formatter={(v: number) => formatGp(v)} />
+            <Tooltip formatter={(v: number) => formatGp(v)} {...tooltipProps} />
             <Area
               yAxisId="profit"
               dataKey="p75"
               stackId="band"
-              fill="#1e3a5f"
+              fill={OSRS_CHART_THEME.bandP75}
               stroke="none"
               name="p75"
             />
@@ -132,13 +144,25 @@ export function OsrsMmgTrendsPanel({
               yAxisId="profit"
               dataKey="p25"
               stackId="band"
-              fill="#0f172a"
+              fill={OSRS_CHART_THEME.bandP25}
               stroke="none"
               name="p25"
             />
-            <Line yAxisId="profit" type="monotone" dataKey="median_profit" stroke="#38bdf8" name="Median GP/h" />
+            <Line
+              yAxisId="profit"
+              type="monotone"
+              dataKey="median_profit"
+              stroke={OSRS_CHART_THEME.medianLine}
+              name="Median GP/h"
+            />
             {showVolume ? (
-              <Line yAxisId="volume" type="monotone" dataKey="item_volume" stroke="#fbbf24" name="GE volume" />
+              <Line
+                yAxisId="volume"
+                type="monotone"
+                dataKey="item_volume"
+                stroke={OSRS_CHART_THEME.volumeLine}
+                name="GE volume"
+              />
             ) : null}
           </ComposedChart>
         </ResponsiveContainer>
@@ -147,13 +171,22 @@ export function OsrsMmgTrendsPanel({
       {mode === "topN" && comparisonChartData.length > 0 ? (
         <ResponsiveContainer width="100%" height={320}>
           <ComposedChart data={comparisonChartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis dataKey="period" tick={{ fontSize: 11 }} />
-            <YAxis tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
-            <Tooltip formatter={(v: number) => formatGp(v)} />
-            <Legend />
+            <CartesianGrid strokeDasharray="3 3" stroke={OSRS_CHART_THEME.grid} />
+            <XAxis dataKey="period" tick={axisTick} stroke={OSRS_CHART_THEME.axis} />
+            <YAxis
+              tick={axisTick}
+              stroke={OSRS_CHART_THEME.axis}
+              tickFormatter={(v) => `${Math.round(v / 1000)}k`}
+            />
+            <Tooltip formatter={(v: number) => formatGp(v)} {...tooltipProps} />
+            <Legend wrapperStyle={{ color: OSRS_CHART_THEME.axis }} />
             {methodNames.map((name, i) => (
-              <Line key={name} type="monotone" dataKey={name} stroke={CHART_COLORS[i % CHART_COLORS.length]} />
+              <Line
+                key={name}
+                type="monotone"
+                dataKey={name}
+                stroke={OSRS_CHART_THEME.colors[i % OSRS_CHART_THEME.colors.length]}
+              />
             ))}
           </ComposedChart>
         </ResponsiveContainer>
@@ -168,5 +201,3 @@ export function OsrsMmgTrendsPanel({
     </section>
   );
 }
-
-const CHART_COLORS = ["#38bdf8", "#a78bfa", "#34d399", "#fb7185", "#fbbf24", "#94a3b8"];

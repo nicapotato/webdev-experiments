@@ -32,7 +32,8 @@ export const SAMPLE_GUIDES: MmgGuide[] =  [
         "qtyPerCompletion": 3.0,
         "gpPerCompletion": 5307.0
       }
-    ]
+    ],
+    skillRequirements: [],
   },
   {
     "id": "tob",
@@ -180,7 +181,11 @@ export const SAMPLE_GUIDES: MmgGuide[] =  [
         "qtyPerCompletion": 6.3558,
         "gpPerCompletion": 65299.4892
       }
-    ]
+    ],
+    skillRequirements: [
+      { skillKey: "Magic", requirementText: "94+" },
+      { skillKey: "Ranged", requirementText: "90+" },
+    ],
   },
   {
     "id": "smithing",
@@ -214,7 +219,8 @@ export const SAMPLE_GUIDES: MmgGuide[] =  [
         "qtyPerCompletion": 1.0,
         "gpPerCompletion": 88809329.0
       }
-    ]
+    ],
+    skillRequirements: []
   },
   {
     "id": "mokhaiotl",
@@ -350,6 +356,10 @@ export const SAMPLE_GUIDES: MmgGuide[] =  [
         "qtyPerCompletion": 0.76612401392181,
         "gpPerCompletion": 18782.296325307
       }
-    ]
+    ],
+    skillRequirements: [
+      { skillKey: "Magic", requirementText: "80+" },
+      { skillKey: "Ranged", requirementText: "90+" },
+    ],
   }
 ]  as const;

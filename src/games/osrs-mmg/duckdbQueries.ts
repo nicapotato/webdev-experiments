@@ -1,5 +1,5 @@
 import { queryRows } from "./duckdbClient";
-import type { MethodRankRow, MmgGuide, PeriodGranularity, TrendPoint } from "./types";
+import type { MethodRankRow, MmgGuide, PeriodGranularity, SkillRequirement, TrendPoint } from "./types";
 
 const PERIOD_SQL: Record<PeriodGranularity, string> = {
   day: "day",
@@ -29,6 +29,29 @@ export async function fetchMethodRankings(): Promise<MethodRankRow[]> {
     FROM method_rankings
     ORDER BY wiki_rank NULLS LAST
   `);
+}
+
+export async function fetchMethodSkillsMap(): Promise<Record<string, SkillRequirement[]>> {
+  const rows = await queryRows<{
+    method_id: string;
+    skill_key: string;
+    requirement_text: string;
+  }>(
+    `SELECT method_id, skill_key, requirement_text
+     FROM method_skills
+     ORDER BY method_id, skill_key`,
+  );
+
+  const map: Record<string, SkillRequirement[]> = {};
+  for (const row of rows) {
+    const list = map[row.method_id] ?? [];
+    list.push({
+      skillKey: row.skill_key,
+      requirementText: row.requirement_text,
+    });
+    map[row.method_id] = list;
+  }
+  return map;
 }
 
 export async function fetchGuide(methodId: string): Promise<MmgGuide | null> {
@@ -61,6 +84,16 @@ export async function fetchGuide(methodId: string): Promise<MmgGuide | null> {
      FROM guide_lines WHERE method_id = '${safeId}'`,
   );
 
+  const skills = await queryRows<{
+    skill_key: string;
+    requirement_text: string;
+  }>(
+    `SELECT skill_key, requirement_text
+     FROM method_skills
+     WHERE method_id = '${safeId}'
+     ORDER BY skill_key`,
+  );
+
   const mapLine = (line: (typeof lines)[number]) => ({
     itemName: line.item_name,
     wikiSlug: line.wiki_slug,
@@ -81,6 +114,10 @@ export async function fetchGuide(methodId: string): Promise<MmgGuide | null> {
     outputTotalPh: row.output_total_ph ?? 0,
     inputs: lines.filter((l) => l.io_type === "input").map(mapLine),
     outputs: lines.filter((l) => l.io_type === "output").map(mapLine),
+    skillRequirements: skills.map((skill) => ({
+      skillKey: skill.skill_key,
+      requirementText: skill.requirement_text,
+    })),
   };
 }
 

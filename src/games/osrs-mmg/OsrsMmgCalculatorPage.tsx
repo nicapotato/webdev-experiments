@@ -6,6 +6,7 @@ import { fetchGuide } from "./duckdbQueries";
 import { getUserKph, setUserKph } from "./kphPreferences";
 import { calcAtKph, formatGp, formatQty } from "./mmgCalc";
 import { OsrsMmgDataBanner } from "./OsrsMmgDataBanner";
+import { OsrsMmgSkillRequirements } from "./OsrsMmgSkillRequirements";
 import { OsrsMmgTrendsPanel } from "./OsrsMmgTrendsPanel";
 import { SAMPLE_GUIDES } from "./sampleGuides";
 import type { MmgGuide } from "./types";
@@ -125,6 +126,8 @@ export default function OsrsMmgCalculatorPage() {
           onReload={data.reload}
         />
       ) : null}
+
+      <OsrsMmgSkillRequirements skills={activeGuide.skillRequirements} />
 
       <div className="osrs-mmg__kph-row">
         <label className="osrs-mmg__field">

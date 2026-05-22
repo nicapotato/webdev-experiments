@@ -5,6 +5,11 @@ export type IoLine = {
   gpPerCompletion: number;
 };
 
+export type SkillRequirement = {
+  skillKey: string;
+  requirementText: string;
+};
+
 export type MmgGuide = {
   id: string;
   methodName: string;
@@ -18,6 +23,7 @@ export type MmgGuide = {
   outputTotalPh: number;
   inputs: IoLine[];
   outputs: IoLine[];
+  skillRequirements: SkillRequirement[];
 };
 
 export type IoLineAtKph = IoLine & {
