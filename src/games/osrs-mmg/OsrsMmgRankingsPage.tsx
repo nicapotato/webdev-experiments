@@ -1,17 +1,46 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 import { isLiveDataEnabled } from "./dataConfig";
 import { fetchMethodRankings, fetchMethodSkillsMap } from "./duckdbQueries";
-import { readKphMap, setUserKph, writeKphMap } from "./kphPreferences";
+import {
+  cloneRankingsDraft,
+  createRankingsProfile,
+  deleteRankingsProfile,
+  draftsEqual,
+  getActiveRankingsProfile,
+  listRankingsProfiles,
+  loadActiveRankingsDraft,
+  MAX_RANKINGS_PROFILES,
+  profileToDraft,
+  saveActiveRankingsProfile,
+  setActiveRankingsProfile,
+} from "./kphPreferences";
+import {
+  disabledSetFromDraft,
+  setAllRankingEnabledInDraft,
+  setDraftKph,
+  setRankingEnabledInDraft,
+} from "./rankingsDraft";
+import { RankingsUndoStack } from "./rankingsUndo";
 import { formatGp } from "./mmgCalc";
 import { OsrsMmgDataBanner } from "./OsrsMmgDataBanner";
 import { OsrsMmgKphToolbar } from "./OsrsMmgKphToolbar";
+import { OsrsMmgProfileMenu } from "./OsrsMmgProfileMenu";
+import { OsrsMmgRankingsFilter } from "./OsrsMmgRankingsFilter";
 import { OsrsMmgSkillIcons } from "./OsrsMmgSkillIcons";
+import {
+  collectFilterOptions,
+  EMPTY_RANKINGS_FILTERS,
+  methodMatchesRankingsFilters,
+  rankingsFiltersActive,
+  type RankingsFilters,
+} from "./rankingsFilters";
 import { OsrsMmgTrendsPanel } from "./OsrsMmgTrendsPanel";
-import { profitAtKph, rankMethods } from "./rankMethods";
+import { profitAtKph, rankMethods, sortRowsByProfit, formatMethodCategories } from "./rankMethods";
 import { SAMPLE_GUIDES } from "./sampleGuides";
-import type { MethodRankRow, SkillRequirement } from "./types";
+import type { MethodRankRow, RankingsDraftState, RankingsProfile, SkillRequirement } from "./types";
 import { useOsrsData } from "./useOsrsData";
 
 function sampleSkillsMap(): Record<string, SkillRequirement[]> {
@@ -21,90 +50,267 @@ function sampleSkillsMap(): Record<string, SkillRequirement[]> {
 }
 
 function sampleToRankRows(): MethodRankRow[] {
+  const sampleCategories: Record<string, string[]> = {
+    marlin: ["Skilling", "Fishing"],
+    tob: ["Combat", "High"],
+    smithing: ["Skilling", "Smithing"],
+    mokhaiotl: ["Combat", "Mid"],
+  };
+
   return SAMPLE_GUIDES.map((g, i) => ({
     method_id: g.id,
     method_name: g.methodName,
     method_url: g.methodUrl,
-    categories: [],
+    categories: sampleCategories[g.id] ?? ["Skilling"],
     intensity: "",
     is_members: null,
     default_kph: g.defaultKph,
     completions_unit_name: g.kphUnitName,
-    profit_pk: (g.outputTotalPk - g.inputTotalPk),
+    profit_pk: g.outputTotalPk - g.inputTotalPk,
     profit_ph: g.outputTotalPh - g.inputTotalPh,
     profit_linear_approx: false,
     wiki_rank: i + 1,
     wiki_hourly_profit_gp: null,
-    wiki_profit_gp: g.outputTotalPk * g.defaultKph + g.outputTotalPh - (g.inputTotalPk * g.defaultKph + g.inputTotalPh),
+    wiki_profit_gp:
+      g.outputTotalPk * g.defaultKph +
+      g.outputTotalPh -
+      (g.inputTotalPk * g.defaultKph + g.inputTotalPh),
   }));
+}
+
+function loadProfileState() {
+  const profile = getActiveRankingsProfile();
+  const draft = profileToDraft(profile);
+  return { profile, savedDraft: cloneRankingsDraft(draft), draft };
 }
 
 export default function OsrsMmgRankingsPage() {
   const data = useOsrsData();
+  const undoStackRef = useRef(new RankingsUndoStack());
   const [rows, setRows] = useState<MethodRankRow[]>([]);
-  const [draftKph, setDraftKph] = useState<Record<string, number>>({});
-  const [appliedKph, setAppliedKph] = useState<Record<string, number>>({});
+  const [profiles, setProfiles] = useState<RankingsProfile[]>(() => listRankingsProfiles());
+  const [activeProfile, setActiveProfile] = useState<RankingsProfile>(() => getActiveRankingsProfile());
+  const [savedDraft, setSavedDraft] = useState<RankingsDraftState>(() => loadActiveRankingsDraft());
+  const [draft, setDraft] = useState<RankingsDraftState>(() => loadActiveRankingsDraft());
   const [prefsVersion, setPrefsVersion] = useState(0);
   const [showTopN, setShowTopN] = useState(20);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [rerankActive, setRerankActive] = useState(false);
+  const [filters, setFilters] = useState<RankingsFilters>(EMPTY_RANKINGS_FILTERS);
   const [skillsByMethod, setSkillsByMethod] = useState<Record<string, SkillRequirement[]>>({});
+
+  function refreshProfiles() {
+    setProfiles(listRankingsProfiles());
+    setActiveProfile(getActiveRankingsProfile());
+  }
+
+  function resetDraftFromActiveProfile(clearUndo = true) {
+    const { profile, savedDraft: nextSavedDraft, draft: nextDraft } = loadProfileState();
+    setActiveProfile(profile);
+    setSavedDraft(nextSavedDraft);
+    setDraft(nextDraft);
+    if (clearUndo) undoStackRef.current.clear();
+  }
 
   useEffect(() => {
     if (!isLiveDataEnabled()) {
-      const map = readKphMap();
-      setAppliedKph(map);
-      setDraftKph(map);
+      resetDraftFromActiveProfile();
       setRows(sampleToRankRows());
       setSkillsByMethod(sampleSkillsMap());
+      refreshProfiles();
       return;
     }
     if (!data.ready) return;
     void Promise.all([fetchMethodRankings(), fetchMethodSkillsMap()]).then(([loaded, skills]) => {
-      const map = readKphMap();
+      resetDraftFromActiveProfile();
       setRows(loaded);
       setSkillsByMethod(skills);
-      setAppliedKph(map);
-      setDraftKph(map);
+      refreshProfiles();
     });
   }, [data.ready, prefsVersion]);
 
-  const ranked = useMemo(() => rankMethods(rows, appliedKph), [rows, appliedKph]);
-  const visibleRanked = useMemo(() => ranked.slice(0, showTopN), [ranked, showTopN]);
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (!event.altKey || event.key.toLowerCase() !== "z") return;
+      event.preventDefault();
+      const previous = undoStackRef.current.pop();
+      if (!previous) return;
+      setDraft(previous);
+    }
 
-  const hasDraftChanges = useMemo(() => {
-    return rows.some((row) => {
-      const draft = draftKph[row.method_id] ?? row.default_kph;
-      const applied = appliedKph[row.method_id] ?? row.default_kph;
-      return draft !== applied;
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const disabledMethodIds = useMemo(() => disabledSetFromDraft(draft), [draft]);
+
+  const ranked = useMemo(
+    () => rankMethods(rows, draft.kph_by_method_id, disabledMethodIds),
+    [rows, draft.kph_by_method_id, disabledMethodIds],
+  );
+
+  const rankByMethodId = useMemo(
+    () => new Map(ranked.map((row, index) => [row.method_id, index + 1])),
+    [ranked],
+  );
+
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+
+  const filterOptions = useMemo(() => collectFilterOptions(rows), [rows]);
+
+  const filteredRows = useMemo(() => {
+    return rows.filter((row) => {
+      if (normalizedSearch && !row.method_name.toLowerCase().includes(normalizedSearch)) {
+        return false;
+      }
+      return methodMatchesRankingsFilters(row, skillsByMethod[row.method_id] ?? [], filters);
     });
-  }, [rows, draftKph, appliedKph]);
+  }, [rows, normalizedSearch, skillsByMethod, filters]);
+
+  const tableRows = useMemo(() => {
+    const source = rerankActive ?
+      filteredRows.filter((row) => !disabledMethodIds.has(row.method_id))
+    : filteredRows;
+
+    const sorted = sortRowsByProfit(source, draft.kph_by_method_id);
+    if (normalizedSearch || rerankActive) {
+      return sorted;
+    }
+    return sorted.slice(0, showTopN);
+  }, [
+    filteredRows,
+    rerankActive,
+    disabledMethodIds,
+    normalizedSearch,
+    showTopN,
+    draft.kph_by_method_id,
+  ]);
+
+  const displayRankByMethodId = useMemo(() => {
+    if (!rerankActive) {
+      return rankByMethodId;
+    }
+    const reranked = sortRowsByProfit(
+      filteredRows.filter((row) => !disabledMethodIds.has(row.method_id)),
+      draft.kph_by_method_id,
+    );
+    return new Map(reranked.map((row, index) => [row.method_id, index + 1]));
+  }, [rerankActive, filteredRows, disabledMethodIds, draft.kph_by_method_id, rankByMethodId]);
+
+  const bulkTargetIds = useMemo(() => {
+    if (normalizedSearch || rerankActive || rankingsFiltersActive(filters)) {
+      return tableRows.map((row) => row.method_id);
+    }
+    return filteredRows.slice(0, showTopN).map((row) => row.method_id);
+  }, [normalizedSearch, rerankActive, filters, tableRows, filteredRows, showTopN]);
+
+  const bulkAllEnabled =
+    bulkTargetIds.length > 0 && bulkTargetIds.every((id) => !disabledMethodIds.has(id));
+  const bulkSomeEnabled = bulkTargetIds.some((id) => !disabledMethodIds.has(id));
+
+  const hasUnsavedChanges = useMemo(
+    () => !draftsEqual(draft, savedDraft),
+    [draft, savedDraft],
+  );
+
+  function pushUndoSnapshot() {
+    undoStackRef.current.push(cloneRankingsDraft(draft));
+  }
+
+  function applyDraft(updater: (prev: RankingsDraftState) => RankingsDraftState) {
+    setDraft((prev) => {
+      undoStackRef.current.push(cloneRankingsDraft(prev));
+      return updater(prev);
+    });
+  }
 
   function onDraftKphChange(methodId: string, value: number) {
-    setDraftKph((prev) => ({ ...prev, [methodId]: value }));
+    setDraft((prev) => setDraftKph(prev, methodId, value));
   }
 
-  function onReRank() {
-    const next = { ...appliedKph };
-    for (const row of rows) {
-      const draft = draftKph[row.method_id] ?? row.default_kph;
-      next[row.method_id] = draft;
-      setUserKph(row.method_id, draft);
+  function onKphFocus() {
+    pushUndoSnapshot();
+  }
+
+  function onRankingEnabledChange(methodId: string, enabled: boolean) {
+    applyDraft((prev) => setRankingEnabledInDraft(prev, methodId, enabled));
+  }
+
+  function onSetAllRankingEnabled(enabled: boolean) {
+    applyDraft((prev) => setAllRankingEnabledInDraft(prev, bulkTargetIds, enabled));
+  }
+
+  function onDiscardChanges() {
+    setDraft(cloneRankingsDraft(savedDraft));
+    undoStackRef.current.clear();
+  }
+
+  function onSave() {
+    const saved = saveActiveRankingsProfile(draft);
+    const nextSavedDraft = profileToDraft(saved);
+    setSavedDraft(nextSavedDraft);
+    setDraft(cloneRankingsDraft(nextSavedDraft));
+    setActiveProfile(saved);
+    setProfiles(listRankingsProfiles());
+    undoStackRef.current.clear();
+    toast.success(`Saved v${saved.save_version}`);
+  }
+
+  function confirmDiscard(message: string): boolean {
+    if (!hasUnsavedChanges) return true;
+    return window.confirm(message);
+  }
+
+  function onProfileSelect(profileId: string) {
+    if (profileId === activeProfile.id) return;
+    if (!confirmDiscard("Discard unsaved changes and switch profile?")) return;
+    setActiveRankingsProfile(profileId);
+    resetDraftFromActiveProfile();
+    refreshProfiles();
+  }
+
+  function onCreateProfile() {
+    if (profiles.length >= MAX_RANKINGS_PROFILES) {
+      toast.error(`Maximum of ${MAX_RANKINGS_PROFILES} profiles reached`);
+      return;
     }
-    setAppliedKph(next);
-    writeKphMap(next);
+    const name = window.prompt("Profile name");
+    if (!name?.trim()) return;
+    if (!confirmDiscard("Discard unsaved changes and create a new profile?")) return;
+    createRankingsProfile(name.trim());
+    resetDraftFromActiveProfile();
+    refreshProfiles();
+    toast.success("Profile created");
   }
 
-  function onResetDraft() {
-    const map = readKphMap();
-    setDraftKph(map);
+  function onDeleteProfile() {
+    if (profiles.length <= 1) {
+      toast.error("At least one profile is required");
+      return;
+    }
+    const message = hasUnsavedChanges
+      ? `Delete profile "${activeProfile.name}"? Unsaved changes will be lost.`
+      : `Delete profile "${activeProfile.name}"?`;
+    if (!window.confirm(message)) return;
+    deleteRankingsProfile(activeProfile.id);
+    resetDraftFromActiveProfile();
+    refreshProfiles();
+    toast.success("Profile deleted");
   }
 
-  const topForChart = useMemo(() => rankMethods(rows, appliedKph).slice(0, 10), [rows, appliedKph]);
+  const topForChart = useMemo(
+    () => rankMethods(rows, draft.kph_by_method_id, disabledMethodIds).slice(0, 10),
+    [rows, draft.kph_by_method_id, disabledMethodIds],
+  );
+
+  const searchResultCount =
+    normalizedSearch || rerankActive || rankingsFiltersActive(filters) ? tableRows.length : null;
 
   return (
     <div className="osrs-mmg">
-      <header className="osrs-mmg__header">
+      <header className="osrs-mmg__header osrs-mmg__header--compact">
         <h1>OSRS Money Maker Rankings</h1>
-        <p>Adjust completions per hour, then re-rank. Click a method for the full calculator.</p>
+        <p>Adjust kph, toggle methods, then Save. Click a method for the calculator.</p>
       </header>
 
       {isLiveDataEnabled() ? (
@@ -121,37 +327,95 @@ export default function OsrsMmgRankingsPage() {
         </p>
       )}
 
-      <OsrsMmgKphToolbar onImported={() => setPrefsVersion((n) => n + 1)} />
+      <div className="osrs-mmg__controls">
+        <OsrsMmgProfileMenu
+          profiles={profiles}
+          activeProfile={activeProfile}
+          hasUnsavedChanges={hasUnsavedChanges}
+          maxProfiles={MAX_RANKINGS_PROFILES}
+          onSelectProfile={onProfileSelect}
+          onCreateProfile={onCreateProfile}
+          onDeleteProfile={onDeleteProfile}
+        />
+        <button type="button" className="osrs-mmg__btn" disabled={!hasUnsavedChanges} onClick={onSave}>
+          Save
+        </button>
+        <button
+          type="button"
+          className="osrs-mmg__btn osrs-mmg__btn--ghost"
+          disabled={!hasUnsavedChanges}
+          onClick={onDiscardChanges}
+        >
+          Discard
+        </button>
 
-      <div className="osrs-mmg__rerank-row">
-        <label className="osrs-mmg__topn-field">
-          Show top
+        <div className="osrs-mmg__controls-grow">
+          <input
+            className="osrs-mmg__search-input"
+            type="search"
+            value={searchQuery}
+            placeholder="Search methods…"
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchResultCount != null ? (
+            <span className="osrs-mmg__search-count">{searchResultCount}</span>
+          ) : null}
+        </div>
+
+        <label className="osrs-mmg__topn-field osrs-mmg__topn-field--compact">
+          Top
           <input
             className="osrs-mmg__topn-input"
             type="number"
             min={1}
             max={500}
             value={showTopN}
+            disabled={normalizedSearch.length > 0 || rerankActive || rankingsFiltersActive(filters)}
             onChange={(e) => {
               const next = Math.max(1, Math.min(500, Number(e.target.value) || 1));
               setShowTopN(next);
             }}
           />
         </label>
-        <button type="button" disabled={!hasDraftChanges} onClick={onReRank}>
+
+        <button
+          type="button"
+          className={rerankActive ? "osrs-mmg__btn osrs-mmg__btn--active" : "osrs-mmg__btn osrs-mmg__btn--ghost"}
+          onClick={() => setRerankActive((value) => !value)}
+        >
           Re-rank
         </button>
-        <button type="button" onClick={onResetDraft}>
-          Reset draft kph
-        </button>
+
+        <OsrsMmgRankingsFilter
+          filters={filters}
+          methodTypeOptions={filterOptions.methodTypes}
+          intensityOptions={filterOptions.intensities}
+          onChange={setFilters}
+        />
+
+        <OsrsMmgKphToolbar onImported={() => setPrefsVersion((n) => n + 1)} />
       </div>
 
-      <div className="osrs-mmg__table-scroll">
+      <div className="osrs-mmg__table-scroll osrs-mmg__table-scroll--wide">
         <table className="osrs-mmg__table osrs-mmg__table--rankings">
           <thead>
             <tr>
+              <th className="osrs-mmg__rank-bulk-head">
+                <label className="osrs-mmg__rank-toggle">
+                  <input
+                    type="checkbox"
+                    checked={bulkAllEnabled}
+                    ref={(el) => {
+                      if (el) el.indeterminate = bulkSomeEnabled && !bulkAllEnabled;
+                    }}
+                    onChange={(e) => onSetAllRankingEnabled(e.target.checked)}
+                  />
+                  <span className="osrs-mmg__sr-only">Toggle all visible methods in rankings</span>
+                </label>
+              </th>
               <th>#</th>
               <th>Method</th>
+              <th>Type</th>
               <th>Skills</th>
               <th>Wiki GP/h</th>
               <th>Your kph</th>
@@ -160,15 +424,33 @@ export default function OsrsMmgRankingsPage() {
             </tr>
           </thead>
           <tbody>
-            {visibleRanked.map((row, index) => {
-              const kph = draftKph[row.method_id] ?? row.default_kph;
+            {tableRows.map((row) => {
+              const kph = draft.kph_by_method_id[row.method_id] ?? row.default_kph;
               const adjusted = profitAtKph(row, kph);
+              const isDisabled = disabledMethodIds.has(row.method_id);
+              const rank = displayRankByMethodId.get(row.method_id);
               return (
-                <tr key={row.method_id}>
-                  <td>{index + 1}</td>
+                <tr
+                  key={row.method_id}
+                  className={isDisabled ? "osrs-mmg__table-row--disabled" : undefined}
+                >
+                  <td>
+                    <label className="osrs-mmg__rank-toggle">
+                      <input
+                        type="checkbox"
+                        checked={!isDisabled}
+                        onChange={(e) => onRankingEnabledChange(row.method_id, e.target.checked)}
+                      />
+                      <span className="osrs-mmg__sr-only">
+                        {isDisabled ? "Excluded from rankings" : "Included in rankings"}
+                      </span>
+                    </label>
+                  </td>
+                  <td>{rerankActive || !isDisabled ? rank : "—"}</td>
                   <td>
                     <Link to={`/osrs-mmg/m/${row.method_id}`}>{row.method_name}</Link>
                   </td>
+                  <td className="osrs-mmg__type-cell">{formatMethodCategories(row.categories)}</td>
                   <td>
                     <OsrsMmgSkillIcons skills={skillsByMethod[row.method_id] ?? []} compact />
                   </td>
@@ -180,6 +462,7 @@ export default function OsrsMmgRankingsPage() {
                       min={0}
                       step="any"
                       value={kph}
+                      onFocus={onKphFocus}
                       onChange={(e) => onDraftKphChange(row.method_id, Number(e.target.value))}
                     />
                     <span className="osrs-mmg__kph-unit">{row.completions_unit_name}</span>

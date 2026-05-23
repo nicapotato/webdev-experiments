@@ -11,9 +11,10 @@ import {
   YAxis,
 } from "recharts";
 
-import { axisTick, OSRS_CHART_THEME, tooltipProps } from "./chartTheme";
+import { axisTick, chartMargin, legendProps, OSRS_CHART_THEME, tooltipProps } from "./chartTheme";
 import { fetchTopNComparison, fetchTrendSeries } from "./duckdbQueries";
 import { formatGp } from "./mmgCalc";
+import { comparePeriodKeys, formatPeriodTooltipLabel, periodXAxisProps, toIsoDate } from "./periodFormat";
 import type { MethodRankRow, PeriodGranularity, TrendPoint } from "./types";
 
 type Props = {
@@ -65,15 +66,20 @@ export function OsrsMmgTrendsPanel({
     };
   }, [mode, methodId, period, topN, mode === "topN" ? topMethods : null]);
 
+  const chartSeries = useMemo(
+    () => series.map((row) => ({ ...row, period: toIsoDate(row.period) })),
+    [series],
+  );
+
   const comparisonChartData = useMemo(() => {
     const byPeriod = new Map<string, Record<string, number | string>>();
     for (const row of comparison) {
-      const key = String(row.period);
+      const key = toIsoDate(row.period);
       const entry = byPeriod.get(key) ?? { period: key };
       entry[row.method_name] = row.profit;
       byPeriod.set(key, entry);
     }
-    return [...byPeriod.values()];
+    return [...byPeriod.values()].sort((a, b) => comparePeriodKeys(String(a.period), String(b.period)));
   }, [comparison]);
 
   const methodNames = useMemo(
@@ -111,85 +117,110 @@ export function OsrsMmgTrendsPanel({
 
       {loading ? <p className="osrs-mmg__muted">Loading chart…</p> : null}
 
-      {mode === "single" && series.length > 0 ? (
-        <ResponsiveContainer width="100%" height={280}>
-          <ComposedChart data={series}>
-            <CartesianGrid strokeDasharray="3 3" stroke={OSRS_CHART_THEME.grid} />
-            <XAxis dataKey="period" tick={axisTick} stroke={OSRS_CHART_THEME.axis} />
-            <YAxis
-              yAxisId="profit"
-              tick={axisTick}
-              stroke={OSRS_CHART_THEME.axis}
-              tickFormatter={(v) => `${Math.round(v / 1000)}k`}
-            />
-            {showVolume ? (
+      {mode === "single" && chartSeries.length > 0 ? (
+        <div className="osrs-mmg__chart">
+          <ResponsiveContainer width="100%" height={340}>
+            <ComposedChart data={chartSeries} margin={chartMargin}>
+              <CartesianGrid strokeDasharray="3 3" stroke={OSRS_CHART_THEME.grid} />
+              <XAxis
+                dataKey="period"
+                tick={axisTick}
+                stroke={OSRS_CHART_THEME.axis}
+                {...periodXAxisProps(period)}
+              />
               <YAxis
-                yAxisId="volume"
-                orientation="right"
+                yAxisId="profit"
                 tick={axisTick}
                 stroke={OSRS_CHART_THEME.axis}
                 tickFormatter={(v) => `${Math.round(v / 1000)}k`}
               />
-            ) : null}
-            <Tooltip formatter={(v: number) => formatGp(v)} {...tooltipProps} />
-            <Area
-              yAxisId="profit"
-              dataKey="p75"
-              stackId="band"
-              fill={OSRS_CHART_THEME.bandP75}
-              stroke="none"
-              name="p75"
-            />
-            <Area
-              yAxisId="profit"
-              dataKey="p25"
-              stackId="band"
-              fill={OSRS_CHART_THEME.bandP25}
-              stroke="none"
-              name="p25"
-            />
-            <Line
-              yAxisId="profit"
-              type="monotone"
-              dataKey="median_profit"
-              stroke={OSRS_CHART_THEME.medianLine}
-              name="Median GP/h"
-            />
-            {showVolume ? (
-              <Line
-                yAxisId="volume"
-                type="monotone"
-                dataKey="item_volume"
-                stroke={OSRS_CHART_THEME.volumeLine}
-                name="GE volume"
+              {showVolume ? (
+                <YAxis
+                  yAxisId="volume"
+                  orientation="right"
+                  tick={axisTick}
+                  stroke={OSRS_CHART_THEME.axis}
+                  tickFormatter={(v) => `${Math.round(v / 1000)}k`}
+                />
+              ) : null}
+              <Tooltip
+                formatter={(v: number) => formatGp(v)}
+                labelFormatter={(label) => formatPeriodTooltipLabel(String(label), period)}
+                {...tooltipProps}
               />
-            ) : null}
-          </ComposedChart>
-        </ResponsiveContainer>
+              <Legend {...legendProps} />
+              <Area
+                yAxisId="profit"
+                dataKey="p75"
+                stackId="band"
+                fill={OSRS_CHART_THEME.bandP75}
+                stroke={OSRS_CHART_THEME.bandP75Stroke}
+                legendType="line"
+                name="75th percentile"
+              />
+              <Area
+                yAxisId="profit"
+                dataKey="p25"
+                stackId="band"
+                fill={OSRS_CHART_THEME.bandP25}
+                stroke={OSRS_CHART_THEME.bandP25Stroke}
+                legendType="line"
+                name="25th percentile"
+              />
+              <Line
+                yAxisId="profit"
+                type="monotone"
+                dataKey="median_profit"
+                stroke={OSRS_CHART_THEME.medianLine}
+                name="Median GP/h"
+              />
+              {showVolume ? (
+                <Line
+                  yAxisId="volume"
+                  type="monotone"
+                  dataKey="item_volume"
+                  stroke={OSRS_CHART_THEME.volumeLine}
+                  name="GE volume"
+                />
+              ) : null}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
       ) : null}
 
       {mode === "topN" && comparisonChartData.length > 0 ? (
-        <ResponsiveContainer width="100%" height={320}>
-          <ComposedChart data={comparisonChartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke={OSRS_CHART_THEME.grid} />
-            <XAxis dataKey="period" tick={axisTick} stroke={OSRS_CHART_THEME.axis} />
-            <YAxis
-              tick={axisTick}
-              stroke={OSRS_CHART_THEME.axis}
-              tickFormatter={(v) => `${Math.round(v / 1000)}k`}
-            />
-            <Tooltip formatter={(v: number) => formatGp(v)} {...tooltipProps} />
-            <Legend wrapperStyle={{ color: OSRS_CHART_THEME.axis }} />
-            {methodNames.map((name, i) => (
-              <Line
-                key={name}
-                type="monotone"
-                dataKey={name}
-                stroke={OSRS_CHART_THEME.colors[i % OSRS_CHART_THEME.colors.length]}
+        <div className="osrs-mmg__chart">
+          <ResponsiveContainer width="100%" height={400}>
+            <ComposedChart data={comparisonChartData} margin={chartMargin}>
+              <CartesianGrid strokeDasharray="3 3" stroke={OSRS_CHART_THEME.grid} />
+              <XAxis
+                dataKey="period"
+                tick={axisTick}
+                stroke={OSRS_CHART_THEME.axis}
+                {...periodXAxisProps(period)}
               />
-            ))}
-          </ComposedChart>
-        </ResponsiveContainer>
+              <YAxis
+                tick={axisTick}
+                stroke={OSRS_CHART_THEME.axis}
+                tickFormatter={(v) => `${Math.round(v / 1000)}k`}
+              />
+              <Tooltip
+                formatter={(v: number) => formatGp(v)}
+                labelFormatter={(label) => formatPeriodTooltipLabel(String(label), period)}
+                {...tooltipProps}
+              />
+              <Legend {...legendProps} />
+              {methodNames.map((name, i) => (
+                <Line
+                  key={name}
+                  type="monotone"
+                  dataKey={name}
+                  stroke={OSRS_CHART_THEME.colors[i % OSRS_CHART_THEME.colors.length]}
+                />
+              ))}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
       ) : null}
 
       {!loading && mode === "single" && series.length === 0 ? (

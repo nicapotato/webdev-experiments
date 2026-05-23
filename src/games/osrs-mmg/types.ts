@@ -86,4 +86,52 @@ export type KphPreferencesFile = {
   version: 1;
   updated_at: string;
   kph_by_method_id: Record<string, number>;
+  disabled_method_ids?: string[];
+};
+
+export type RankingsProfile = {
+  id: string;
+  name: string;
+  save_version: number;
+  updated_at: string;
+  kph_by_method_id: Record<string, number>;
+  disabled_method_ids: string[];
+};
+
+export type RankingsProfilesFile = {
+  version: 2;
+  active_profile_id: string;
+  profiles: RankingsProfile[];
+};
+
+export type RankingsDraftState = {
+  kph_by_method_id: Record<string, number>;
+  disabled_method_ids: string[];
+};
+
+export type BreakdownIoType = "input" | "output";
+
+export type RankedBreakdownLine = IoLineAtKph & {
+  ioType: BreakdownIoType;
+  lineKey: string;
+};
+
+export type ItemBreakdownRank = {
+  top: RankedBreakdownLine[];
+  other: RankedBreakdownLine[];
+};
+
+export type MethodItemMetricRow = {
+  period: string;
+  wikiSlug: string;
+  ioType: BreakdownIoType;
+  itemName: string;
+  qtyPerCompletion: number;
+  price: number | null;
+  volume: number | null;
+};
+
+export type ItemBreakdownChartPoint = {
+  period: string;
+  [seriesKey: string]: string | number | null;
 };

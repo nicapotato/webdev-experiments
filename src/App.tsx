@@ -18,6 +18,10 @@ const OsrsMmgCalculatorPage = lazy(
   () => import("./games/osrs-mmg/OsrsMmgCalculatorPage"),
 );
 
+const OsrsCharacterPage = lazy(
+  () => import("./games/osrs-character/OsrsCharacterPage"),
+);
+
 const MotherloadPage = lazy(() => import("./games/motherload/page.jsx"));
 const SnakeSinglePlayerPage = lazy(() =>
   import("./games/snake/SnakeSinglePlayerPage").then((m) => ({
@@ -80,6 +84,23 @@ export function App() {
                     }
                   >
                     <OsrsMmgCalculatorPage />
+                  </Suspense>
+                </GameShell>
+              }
+            />
+
+            <Route
+              path="/osrs-mmg/c"
+              element={
+                <GameShell title="OSRS Character">
+                  <Suspense
+                    fallback={
+                      <div className="flex flex-1 items-center justify-center bg-black text-white">
+                        Loading…
+                      </div>
+                    }
+                  >
+                    <OsrsCharacterPage />
                   </Suspense>
                 </GameShell>
               }

@@ -1,5 +1,15 @@
+import { normalizeMethodCategories } from "./rankMethods";
+import { toIsoDate } from "./periodFormat";
 import { queryRows } from "./duckdbClient";
-import type { MethodRankRow, MmgGuide, PeriodGranularity, SkillRequirement, TrendPoint } from "./types";
+import type {
+  BreakdownIoType,
+  MethodItemMetricRow,
+  MethodRankRow,
+  MmgGuide,
+  PeriodGranularity,
+  SkillRequirement,
+  TrendPoint,
+} from "./types";
 
 const PERIOD_SQL: Record<PeriodGranularity, string> = {
   day: "day",
@@ -9,8 +19,50 @@ const PERIOD_SQL: Record<PeriodGranularity, string> = {
   year: "year",
 };
 
+export type TrendDateRange = {
+  from: string;
+  to: string;
+};
+
+function escapeSqlString(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
+function snapshotDateRangeClause(alias: string, range?: TrendDateRange): string {
+  if (!range?.from || !range?.to) return "";
+  const from = escapeSqlString(range.from);
+  const to = escapeSqlString(range.to);
+  return `
+    AND ${alias}.scrape_timestamp >= TIMESTAMP '${from}'
+    AND ${alias}.scrape_timestamp < TIMESTAMP '${to}' + INTERVAL 1 DAY
+  `;
+}
+
+export async function fetchTrendDateBounds(methodIds?: string[]): Promise<{ min: string; max: string } | null> {
+  const methodFilter =
+    methodIds?.length ?
+      `WHERE method_id IN (${methodIds.map((id) => `'${escapeSqlString(id)}'`).join(", ")})`
+    : "";
+
+  const rows = await queryRows<{ min_date: Date | string | null; max_date: Date | string | null }>(`
+    SELECT
+      min(scrape_timestamp)::DATE AS min_date,
+      max(scrape_timestamp)::DATE AS max_date
+    FROM snapshots
+    ${methodFilter}
+  `);
+
+  const row = rows[0];
+  if (!row?.min_date || !row?.max_date) return null;
+
+  return {
+    min: toIsoDate(row.min_date),
+    max: toIsoDate(row.max_date),
+  };
+}
+
 export async function fetchMethodRankings(): Promise<MethodRankRow[]> {
-  return queryRows<MethodRankRow>(`
+  const rows = await queryRows<Omit<MethodRankRow, "categories"> & { categories: unknown }>(`
     SELECT
       method_id,
       method_name,
@@ -29,6 +81,11 @@ export async function fetchMethodRankings(): Promise<MethodRankRow[]> {
     FROM method_rankings
     ORDER BY wiki_rank NULLS LAST
   `);
+
+  return rows.map((row) => ({
+    ...row,
+    categories: normalizeMethodCategories(row.categories),
+  }));
 }
 
 export async function fetchMethodSkillsMap(): Promise<Record<string, SkillRequirement[]>> {
@@ -124,9 +181,11 @@ export async function fetchGuide(methodId: string): Promise<MmgGuide | null> {
 export async function fetchTrendSeries(
   methodId: string,
   period: PeriodGranularity,
+  dateRange?: TrendDateRange,
 ): Promise<TrendPoint[]> {
   const trunc = PERIOD_SQL[period];
-  const safeId = methodId.replace(/'/g, "''");
+  const safeId = escapeSqlString(methodId);
+  const dateFilter = snapshotDateRangeClause("snapshots", dateRange);
   const rows = await queryRows<{
     period: Date | string;
     mean_profit: number;
@@ -143,6 +202,7 @@ export async function fetchTrendSeries(
       quantile_cont(hourly_profit_gp, 0.75) AS p75
     FROM snapshots
     WHERE method_id = '${safeId}' AND hourly_profit_gp IS NOT NULL
+    ${dateFilter}
     GROUP BY 1
     ORDER BY 1
     `,
@@ -158,33 +218,44 @@ export async function fetchTrendSeries(
       AND pm.metric = 'volume'
       AND date_trunc('day', pm.scrape_timestamp) = date_trunc('day', s.scrape_timestamp)
     WHERE s.method_id = '${safeId}'
+    ${snapshotDateRangeClause("s", dateRange)}
     GROUP BY 1
     ORDER BY 1
     `,
   );
 
   const volumeByPeriod = new Map(
-    volumeRows.map((r) => [String(r.period), r.item_volume ?? 0]),
+    volumeRows.map((r) => [toIsoDate(r.period), r.item_volume ?? 0]),
   );
 
-  return rows.map((row) => ({
-    period: String(row.period),
-    mean_profit: row.mean_profit ?? 0,
-    median_profit: row.median_profit ?? 0,
-    p25: row.p25 ?? 0,
-    p75: row.p75 ?? 0,
-    item_volume: volumeByPeriod.get(String(row.period)) ?? null,
-  }));
+  return rows.map((row) => {
+    const periodKey = toIsoDate(row.period);
+    return {
+      period: periodKey,
+      mean_profit: row.mean_profit ?? 0,
+      median_profit: row.median_profit ?? 0,
+      p25: row.p25 ?? 0,
+      p75: row.p75 ?? 0,
+      item_volume: volumeByPeriod.get(periodKey) ?? null,
+    };
+  });
 }
 
 export async function fetchTopNComparison(
   methodIds: string[],
   period: PeriodGranularity,
+  dateRange?: TrendDateRange,
 ): Promise<{ method_id: string; method_name: string; period: string; profit: number }[]> {
   if (!methodIds.length) return [];
   const trunc = PERIOD_SQL[period];
-  const safeIds = methodIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(", ");
-  return queryRows(
+  const safeIds = methodIds.map((id) => `'${escapeSqlString(id)}'`).join(", ");
+  const dateFilter = snapshotDateRangeClause("s", dateRange);
+  const rows = await queryRows<{
+    method_id: string;
+    method_name: string;
+    period: Date | string;
+    profit: number;
+  }>(
     `
     SELECT s.method_id, m.method_name,
            date_trunc('${trunc}', s.scrape_timestamp) AS period,
@@ -192,8 +263,64 @@ export async function fetchTopNComparison(
     FROM snapshots s
     JOIN methods m ON m.method_id = s.method_id
     WHERE s.method_id IN (${safeIds}) AND s.hourly_profit_gp IS NOT NULL
+    ${dateFilter}
     GROUP BY 1, 2, 3
     ORDER BY 3, 4 DESC
     `,
   );
+
+  return rows.map((row) => ({
+    method_id: row.method_id,
+    method_name: row.method_name,
+    period: toIsoDate(row.period),
+    profit: row.profit ?? 0,
+  }));
+}
+
+export async function fetchMethodItemMetrics(
+  methodId: string,
+  period: PeriodGranularity,
+  dateRange?: TrendDateRange,
+): Promise<MethodItemMetricRow[]> {
+  const trunc = PERIOD_SQL[period];
+  const safeId = escapeSqlString(methodId);
+  const dateFilter = snapshotDateRangeClause("pm", dateRange);
+  const rows = await queryRows<{
+    period: Date | string;
+    wiki_slug: string;
+    io_type: string;
+    item_name: string;
+    qty_per_completion: number;
+    price: number | null;
+    volume: number | null;
+  }>(
+    `
+    SELECT
+      date_trunc('${trunc}', pm.scrape_timestamp) AS period,
+      io.wiki_slug,
+      io.io_type,
+      io.item_name,
+      io.qty_per_completion,
+      max(CASE WHEN pm.metric = 'price' THEN pm.value END) AS price,
+      max(CASE WHEN pm.metric = 'volume' THEN pm.value END) AS volume
+    FROM io_lines io
+    JOIN price_metrics pm ON pm.item_id = io.item_id
+    WHERE io.method_id = '${safeId}'
+      AND io.item_id IS NOT NULL
+      AND pm.metric IN ('price', 'volume')
+      ${dateFilter}
+    GROUP BY 1, 2, 3, 4, 5
+    ORDER BY 1, 4
+    `,
+  );
+
+  return rows.map((row) => ({
+    period: toIsoDate(row.period),
+    wikiSlug: row.wiki_slug,
+    ioType: row.io_type as BreakdownIoType,
+    itemName: row.item_name,
+    qtyPerCompletion: row.qty_per_completion,
+    price: row.price,
+    volume: row.volume,
+  }));
 }

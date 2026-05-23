@@ -6,6 +6,7 @@ import { fetchGuide } from "./duckdbQueries";
 import { getUserKph, setUserKph } from "./kphPreferences";
 import { calcAtKph, formatGp, formatQty } from "./mmgCalc";
 import { OsrsMmgDataBanner } from "./OsrsMmgDataBanner";
+import { OsrsMmgItemBreakdownPanel } from "./OsrsMmgItemBreakdownPanel";
 import { OsrsMmgSkillRequirements } from "./OsrsMmgSkillRequirements";
 import { OsrsMmgTrendsPanel } from "./OsrsMmgTrendsPanel";
 import { SAMPLE_GUIDES } from "./sampleGuides";
@@ -170,7 +171,10 @@ export default function OsrsMmgCalculatorPage() {
       ) : null}
 
       {(isLiveDataEnabled() ? data.ready : false) ? (
-        <OsrsMmgTrendsPanel mode="single" methodId={activeGuide.id} methodName={activeGuide.methodName} />
+        <>
+          <OsrsMmgTrendsPanel mode="single" methodId={activeGuide.id} methodName={activeGuide.methodName} />
+          <OsrsMmgItemBreakdownPanel methodId={activeGuide.id} guide={activeGuide} kph={kph} />
+        </>
       ) : null}
     </div>
   );

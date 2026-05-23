@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import {
+  HUB_APPS_ENTRIES,
   HUB_CHRIS_COURSES_ENTRIES,
   HUB_MULTIPLAYER_ENTRIES,
   HUB_PERSONAL_ENTRIES,
@@ -31,6 +32,28 @@ export function Hub() {
           </p>
         </header>
 
+        <section className="hub__section" aria-labelledby="hub-apps-heading">
+          <h2
+            id="hub-apps-heading"
+            className="hub__section-heading hub__subtitle--pixel"
+          >
+            Apps
+          </h2>
+          <div className="hub__grid">
+            {HUB_APPS_ENTRIES.map((e, i) => (
+              <Link
+                key={e.id}
+                to={e.kind === "iframe" ? `/play/${e.id}` : e.path}
+                className={`hub-card ${
+                  HUB_CARD_COLOR_CLASSES[i % HUB_CARD_COLOR_CLASSES.length]
+                }`}
+              >
+                <span className="hub-card__title">{e.title.toUpperCase()}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
         <section className="hub__section" aria-labelledby="hub-personal-heading">
           <h2
             id="hub-personal-heading"
@@ -44,7 +67,10 @@ export function Hub() {
                 key={e.id}
                 to={e.kind === "iframe" ? `/play/${e.id}` : e.path}
                 className={`hub-card ${
-                  HUB_CARD_COLOR_CLASSES[i % HUB_CARD_COLOR_CLASSES.length]
+                  HUB_CARD_COLOR_CLASSES[
+                    (HUB_APPS_ENTRIES.length + i) %
+                      HUB_CARD_COLOR_CLASSES.length
+                  ]
                 }`}
               >
                 <span className="hub-card__title">{e.title.toUpperCase()}</span>
@@ -68,7 +94,8 @@ export function Hub() {
               to="/multiplayer"
               className={`hub-card hub-card--multiplayer-cta ${
                 HUB_CARD_COLOR_CLASSES[
-                  HUB_PERSONAL_ENTRIES.length % HUB_CARD_COLOR_CLASSES.length
+                  (HUB_APPS_ENTRIES.length + HUB_PERSONAL_ENTRIES.length) %
+                    HUB_CARD_COLOR_CLASSES.length
                 ]
               }`}
             >
@@ -112,7 +139,10 @@ export function Hub() {
                 to={e.kind === "iframe" ? `/play/${e.id}` : e.path}
                 className={`hub-card ${
                   HUB_CARD_COLOR_CLASSES[
-                    (HUB_PERSONAL_ENTRIES.length + 1 + i) %
+                    (HUB_APPS_ENTRIES.length +
+                      HUB_PERSONAL_ENTRIES.length +
+                      1 +
+                      i) %
                       HUB_CARD_COLOR_CLASSES.length
                   ]
                 }`}

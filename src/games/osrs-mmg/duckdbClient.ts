@@ -29,7 +29,7 @@ async function getDb(): Promise<duckdb.AsyncDuckDB> {
   if (!dbPromise) {
     dbPromise = (async () => {
       const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);
-      const worker = new Worker(bundle.mainWorker!);
+      const worker = new Worker(bundle.mainWorker!, { type: "module" });
       const logger = new duckdb.VoidLogger();
       const db = new duckdb.AsyncDuckDB(logger, worker);
       await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
@@ -86,6 +86,7 @@ export async function initDuckdbWithBytes(bytes: ArrayBuffer, cacheKey?: string)
 export async function queryRows<T extends Record<string, unknown>>(
   sql: string,
 ): Promise<T[]> {
+  await initChain;
   const connection = await getConn();
   const result = await connection.query(sql);
   return result.toArray() as T[];
