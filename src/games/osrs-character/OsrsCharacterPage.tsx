@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
+import {
+  getActiveRankingsProfile,
+  patchActiveProfileWomPlayer,
+} from "../osrs-mmg/kphPreferences";
 import { skillIconUrl } from "../osrs-mmg/skillIconUrl";
 import {
   clearCharacterProfile,
   loadCharacterProfile,
   parseCharacterProfileImport,
-  saveCharacterProfile,
 } from "./characterStorage";
 import type { CharacterProfile, WomFetchMeta } from "./types";
 import { loadWomPlayer, refreshWomPlayer, WomApiError } from "./womClient";
@@ -23,20 +27,47 @@ function formatXp(value: number): string {
   return value.toLocaleString("en-GB");
 }
 
+function loadInitialProfile(): CharacterProfile | null {
+  const fromProfile = getActiveRankingsProfile().wom_player;
+  if (fromProfile) return fromProfile;
+
+  const legacy = loadCharacterProfile();
+  if (!legacy) return null;
+
+  patchActiveProfileWomPlayer(legacy);
+  clearCharacterProfile();
+  return legacy;
+}
+
 export default function OsrsCharacterPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [usernameInput, setUsernameInput] = useState("");
-  const [profile, setProfile] = useState<CharacterProfile | null>(() => loadCharacterProfile());
+  const [profile, setProfile] = useState<CharacterProfile | null>(() => loadInitialProfile());
   const [lastMeta, setLastMeta] = useState<WomFetchMeta | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showRaw, setShowRaw] = useState(false);
 
   useEffect(() => {
+    function syncFromProfile() {
+      const activeWom = getActiveRankingsProfile().wom_player;
+      setProfile((prev) => (prev?.fetchedAt === activeWom?.fetchedAt ? prev : activeWom));
+    }
+
+    window.addEventListener("focus", syncFromProfile);
+    return () => window.removeEventListener("focus", syncFromProfile);
+  }, []);
+
+  useEffect(() => {
     if (profile && !usernameInput) {
       setUsernameInput(profile.displayName);
     }
   }, [profile, usernameInput]);
+
+  function persistProfile(next: CharacterProfile | null) {
+    patchActiveProfileWomPlayer(next);
+    setProfile(next);
+  }
 
   async function runFetch(mode: "load" | "refresh") {
     setLoading(true);
@@ -47,9 +78,8 @@ export default function OsrsCharacterPage() {
       const result =
         mode === "refresh" ? await refreshWomPlayer(username) : await loadWomPlayer(username);
 
-      setProfile(result.profile);
+      persistProfile(result.profile);
       setLastMeta(result.meta);
-      saveCharacterProfile(result.profile);
       setUsernameInput(result.profile.displayName);
       toast.success(mode === "refresh" ? "Character refreshed from WOM" : "Character loaded");
     } catch (err) {
@@ -67,8 +97,7 @@ export default function OsrsCharacterPage() {
   }
 
   function onClearSaved() {
-    clearCharacterProfile();
-    setProfile(null);
+    persistProfile(null);
     setLastMeta(null);
     setError(null);
     toast.success("Saved character cleared");
@@ -92,10 +121,9 @@ export default function OsrsCharacterPage() {
     if (!file) return;
     try {
       const parsed = parseCharacterProfileImport(JSON.parse(await file.text()));
-      setProfile(parsed);
+      persistProfile(parsed);
       setLastMeta(null);
       setError(null);
-      saveCharacterProfile(parsed);
       setUsernameInput(parsed.displayName);
       toast.success("Character imported");
     } catch (err) {
@@ -112,7 +140,7 @@ export default function OsrsCharacterPage() {
           <a href="https://wiseoldman.net" target="_blank" rel="noreferrer">
             Wise Old Man
           </a>
-          .
+          . Saved to your active MMG rankings profile.
         </p>
       </header>
 
@@ -179,6 +207,9 @@ export default function OsrsCharacterPage() {
           >
             {showRaw ? "Hide" : "Show"} raw JSON
           </button>
+          <Link className="osrs-mmg__btn osrs-mmg__btn--ghost" to="/osrs-mmg">
+            Rankings
+          </Link>
           <input
             ref={fileRef}
             type="file"

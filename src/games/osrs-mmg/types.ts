@@ -1,3 +1,6 @@
+import type { CharacterProfile } from "../osrs-character/types";
+import type { RankingsFilters as RankingsFiltersState } from "./rankingsFilters";
+
 export type IoLine = {
   itemName: string;
   wikiSlug: string;
@@ -7,7 +10,7 @@ export type IoLine = {
 
 export type SkillRequirement = {
   skillKey: string;
-  requirementText: string;
+  requirementText: string | null;
 };
 
 export type MmgGuide = {
@@ -96,6 +99,8 @@ export type RankingsProfile = {
   updated_at: string;
   kph_by_method_id: Record<string, number>;
   disabled_method_ids: string[];
+  rankings_filters: RankingsFiltersState;
+  wom_player: CharacterProfile | null;
 };
 
 export type RankingsProfilesFile = {
@@ -107,6 +112,8 @@ export type RankingsProfilesFile = {
 export type RankingsDraftState = {
   kph_by_method_id: Record<string, number>;
   disabled_method_ids: string[];
+  rankings_filters: RankingsFiltersState;
+  wom_player: CharacterProfile | null;
 };
 
 export type BreakdownIoType = "input" | "output";

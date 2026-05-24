@@ -92,7 +92,7 @@ export async function fetchMethodSkillsMap(): Promise<Record<string, SkillRequir
   const rows = await queryRows<{
     method_id: string;
     skill_key: string;
-    requirement_text: string;
+    requirement_text: string | null;
   }>(
     `SELECT method_id, skill_key, requirement_text
      FROM method_skills
@@ -104,7 +104,7 @@ export async function fetchMethodSkillsMap(): Promise<Record<string, SkillRequir
     const list = map[row.method_id] ?? [];
     list.push({
       skillKey: row.skill_key,
-      requirementText: row.requirement_text,
+      requirementText: row.requirement_text ?? null,
     });
     map[row.method_id] = list;
   }
@@ -143,7 +143,7 @@ export async function fetchGuide(methodId: string): Promise<MmgGuide | null> {
 
   const skills = await queryRows<{
     skill_key: string;
-    requirement_text: string;
+    requirement_text: string | null;
   }>(
     `SELECT skill_key, requirement_text
      FROM method_skills
@@ -173,7 +173,7 @@ export async function fetchGuide(methodId: string): Promise<MmgGuide | null> {
     outputs: lines.filter((l) => l.io_type === "output").map(mapLine),
     skillRequirements: skills.map((skill) => ({
       skillKey: skill.skill_key,
-      requirementText: skill.requirement_text,
+      requirementText: skill.requirement_text ?? null,
     })),
   };
 }

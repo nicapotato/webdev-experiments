@@ -1,5 +1,5 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/Game--IeYmD63.js","assets/index-BpTeCU6g.js","assets/index-UjW3K4Lx.css"])))=>i.map(i=>d[i]);
-import { j as e, r as a, _ as t, __tla as __tla_0 } from "./index-BpTeCU6g.js";
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/Game-B2g2fj-_.js","assets/index-Cmvkr_0Y.js","assets/index-D6liaz4k.css"])))=>i.map(i=>d[i]);
+import { j as e, r as a, _ as t, __tla as __tla_0 } from "./index-Cmvkr_0Y.js";
 let i;
 let __tla = Promise.all([
   (() => {
@@ -9,7 +9,7 @@ let __tla = Promise.all([
     }
   })()
 ]).then(async () => {
-  const s = a.lazy(() => t(() => import("./Game--IeYmD63.js").then(async (m) => {
+  const s = a.lazy(() => t(() => import("./Game-B2g2fj-_.js").then(async (m) => {
     await m.__tla;
     return m;
   }).then((l) => l.as), __vite__mapDeps([0,1,2])).then((l) => ({

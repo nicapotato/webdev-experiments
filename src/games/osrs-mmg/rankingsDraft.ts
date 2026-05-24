@@ -1,10 +1,24 @@
+import type { CharacterProfile } from "../osrs-character/types";
+import {
+  EMPTY_RANKINGS_FILTERS,
+  normalizeRankingsFilters,
+  rankingsFiltersEqual,
+} from "./rankingsFilters";
 import type { RankingsDraftState, RankingsProfile } from "./types";
 
 export function cloneRankingsDraft(state: RankingsDraftState): RankingsDraftState {
   return {
     kph_by_method_id: { ...state.kph_by_method_id },
     disabled_method_ids: [...state.disabled_method_ids],
+    rankings_filters: normalizeRankingsFilters(state.rankings_filters),
+    wom_player: state.wom_player ? { ...state.wom_player, skills: [...state.wom_player.skills] } : null,
   };
+}
+
+function womPlayersEqual(a: CharacterProfile | null, b: CharacterProfile | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return !a && !b;
+  return a.username === b.username && a.fetchedAt === b.fetchedAt;
 }
 
 export function draftsEqual(a: RankingsDraftState, b: RankingsDraftState): boolean {
@@ -21,7 +35,13 @@ export function draftsEqual(a: RankingsDraftState, b: RankingsDraftState): boole
       return false;
     }
   }
-  return true;
+
+  if (!womPlayersEqual(a.wom_player, b.wom_player)) return false;
+
+  return rankingsFiltersEqual(
+    normalizeRankingsFilters(a.rankings_filters),
+    normalizeRankingsFilters(b.rankings_filters),
+  );
 }
 
 export function disabledSetFromDraft(draft: RankingsDraftState): Set<string> {
@@ -73,5 +93,16 @@ export function profileToDraft(profile: RankingsProfile): RankingsDraftState {
   return cloneRankingsDraft({
     kph_by_method_id: profile.kph_by_method_id,
     disabled_method_ids: profile.disabled_method_ids,
+    rankings_filters: profile.rankings_filters,
+    wom_player: profile.wom_player,
   });
+}
+
+export function emptyRankingsDraft(): RankingsDraftState {
+  return {
+    kph_by_method_id: {},
+    disabled_method_ids: [],
+    rankings_filters: EMPTY_RANKINGS_FILTERS,
+    wom_player: null,
+  };
 }

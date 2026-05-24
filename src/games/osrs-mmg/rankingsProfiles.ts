@@ -5,6 +5,8 @@ import type {
   RankingsProfilesFile,
 } from "./types";
 import { profileToDraft } from "./rankingsDraft";
+import { normalizeRankingsFilters } from "./rankingsFilters";
+import type { CharacterProfile } from "../osrs-character/types";
 
 const PROFILES_STORAGE_KEY = "osrs-mmg-profiles-v2";
 const LEGACY_STORAGE_KEY = "osrs-mmg-kph-v1";
@@ -12,6 +14,13 @@ export const MAX_RANKINGS_PROFILES = 20;
 
 function createId(): string {
   return crypto.randomUUID();
+}
+
+function normalizeWomPlayer(raw: unknown): CharacterProfile | null {
+  if (!raw || typeof raw !== "object") return null;
+  const parsed = raw as CharacterProfile;
+  if (!parsed.username || !Array.isArray(parsed.skills)) return null;
+  return parsed;
 }
 
 function defaultProfile(name = "Default"): RankingsProfile {
@@ -23,6 +32,8 @@ function defaultProfile(name = "Default"): RankingsProfile {
     updated_at: now,
     kph_by_method_id: {},
     disabled_method_ids: [],
+    rankings_filters: normalizeRankingsFilters(null),
+    wom_player: null,
   };
 }
 
@@ -53,6 +64,8 @@ function migrateLegacyStore(): RankingsProfilesFile | null {
       updated_at: now,
       kph_by_method_id: parsed.kph_by_method_id ?? {},
       disabled_method_ids: parsed.disabled_method_ids ?? [],
+      rankings_filters: normalizeRankingsFilters(null),
+      wom_player: null,
     };
 
     return {
@@ -84,6 +97,8 @@ function normalizeStore(raw: RankingsProfilesFile): RankingsProfilesFile {
     updated_at: profile.updated_at,
     kph_by_method_id: profile.kph_by_method_id ?? {},
     disabled_method_ids: profile.disabled_method_ids ?? [],
+    rankings_filters: normalizeRankingsFilters(profile.rankings_filters),
+    wom_player: normalizeWomPlayer(profile.wom_player),
   }));
 
   if (profiles.length === 0) {
@@ -181,7 +196,17 @@ export function deleteRankingsProfile(profileId: string): RankingsProfile {
 function writeProfileData(
   store: RankingsProfilesFile,
   profileId: string,
-  patch: Partial<Pick<RankingsProfile, "kph_by_method_id" | "disabled_method_ids" | "save_version" | "updated_at">>,
+  patch: Partial<
+    Pick<
+      RankingsProfile,
+      | "kph_by_method_id"
+      | "disabled_method_ids"
+      | "rankings_filters"
+      | "wom_player"
+      | "save_version"
+      | "updated_at"
+    >
+  >,
 ): RankingsProfile {
   let savedProfile: RankingsProfile | null = null;
   const profiles = store.profiles.map((profile) => {
@@ -202,6 +227,8 @@ export function saveActiveRankingsProfile(draft: RankingsDraftState): RankingsPr
     updated_at: new Date().toISOString(),
     kph_by_method_id: { ...draft.kph_by_method_id },
     disabled_method_ids: [...draft.disabled_method_ids],
+    rankings_filters: normalizeRankingsFilters(draft.rankings_filters),
+    wom_player: draft.wom_player,
   });
 }
 
@@ -211,6 +238,17 @@ function patchActiveRankingsProfile(draft: RankingsDraftState): RankingsProfile 
   return writeProfileData(store, active.id, {
     kph_by_method_id: { ...draft.kph_by_method_id },
     disabled_method_ids: [...draft.disabled_method_ids],
+    rankings_filters: normalizeRankingsFilters(draft.rankings_filters),
+    wom_player: draft.wom_player,
+  });
+}
+
+export function patchActiveProfileWomPlayer(womPlayer: CharacterProfile | null): RankingsProfile {
+  const store = readProfilesStore();
+  const active = getActiveProfileFromStore(store);
+  return writeProfileData(store, active.id, {
+    wom_player: womPlayer,
+    updated_at: new Date().toISOString(),
   });
 }
 
@@ -232,6 +270,8 @@ export function setUserKph(methodId: string, kph: number): RankingsProfile {
   return patchActiveRankingsProfile({
     kph_by_method_id: { ...active.kph_by_method_id, [methodId]: kph },
     disabled_method_ids: active.disabled_method_ids,
+    rankings_filters: active.rankings_filters,
+    wom_player: active.wom_player,
   });
 }
 
@@ -280,6 +320,8 @@ export function importKphBackup(
   const draft: RankingsDraftState = {
     kph_by_method_id: mergedKph,
     disabled_method_ids: [...mergedDisabled],
+    rankings_filters: active.rankings_filters,
+    wom_player: active.wom_player,
   };
 
   patchActiveRankingsProfile(draft);

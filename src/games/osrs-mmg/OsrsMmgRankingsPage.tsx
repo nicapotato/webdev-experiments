@@ -13,6 +13,7 @@ import {
   listRankingsProfiles,
   loadActiveRankingsDraft,
   MAX_RANKINGS_PROFILES,
+  patchActiveProfileWomPlayer,
   profileToDraft,
   saveActiveRankingsProfile,
   setActiveRankingsProfile,
@@ -32,16 +33,17 @@ import { OsrsMmgRankingsFilter } from "./OsrsMmgRankingsFilter";
 import { OsrsMmgSkillIcons } from "./OsrsMmgSkillIcons";
 import {
   collectFilterOptions,
-  EMPTY_RANKINGS_FILTERS,
   methodMatchesRankingsFilters,
+  normalizeRankingsFilters,
   rankingsFiltersActive,
-  type RankingsFilters,
 } from "./rankingsFilters";
 import { OsrsMmgTrendsPanel } from "./OsrsMmgTrendsPanel";
 import { profitAtKph, rankMethods, sortRowsByProfit, formatMethodCategories } from "./rankMethods";
 import { SAMPLE_GUIDES } from "./sampleGuides";
+import type { CharacterProfile } from "../osrs-character/types";
 import type { MethodRankRow, RankingsDraftState, RankingsProfile, SkillRequirement } from "./types";
 import { useOsrsData } from "./useOsrsData";
+import { skillLevelsFromCharacterProfile } from "./womSkills";
 
 function sampleSkillsMap(): Record<string, SkillRequirement[]> {
   return Object.fromEntries(
@@ -96,7 +98,6 @@ export default function OsrsMmgRankingsPage() {
   const [showTopN, setShowTopN] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");
   const [rerankActive, setRerankActive] = useState(false);
-  const [filters, setFilters] = useState<RankingsFilters>(EMPTY_RANKINGS_FILTERS);
   const [skillsByMethod, setSkillsByMethod] = useState<Record<string, SkillRequirement[]>>({});
 
   function refreshProfiles() {
@@ -111,6 +112,23 @@ export default function OsrsMmgRankingsPage() {
     setDraft(nextDraft);
     if (clearUndo) undoStackRef.current.clear();
   }
+
+  useEffect(() => {
+    function syncWomFromProfile() {
+      const activeWom = getActiveRankingsProfile().wom_player;
+      setDraft((prev) => {
+        if (prev.wom_player?.fetchedAt === activeWom?.fetchedAt) return prev;
+        return { ...prev, wom_player: activeWom };
+      });
+      setSavedDraft((prev) => {
+        if (prev.wom_player?.fetchedAt === activeWom?.fetchedAt) return prev;
+        return { ...prev, wom_player: activeWom };
+      });
+    }
+
+    window.addEventListener("focus", syncWomFromProfile);
+    return () => window.removeEventListener("focus", syncWomFromProfile);
+  }, []);
 
   useEffect(() => {
     if (!isLiveDataEnabled()) {
@@ -135,7 +153,7 @@ export default function OsrsMmgRankingsPage() {
       event.preventDefault();
       const previous = undoStackRef.current.pop();
       if (!previous) return;
-      setDraft(previous);
+      setDraft(cloneRankingsDraft(previous));
     }
 
     window.addEventListener("keydown", onKeyDown);
@@ -158,14 +176,19 @@ export default function OsrsMmgRankingsPage() {
 
   const filterOptions = useMemo(() => collectFilterOptions(rows), [rows]);
 
+  const rankingsFilters = useMemo(
+    () => normalizeRankingsFilters(draft.rankings_filters),
+    [draft.rankings_filters],
+  );
+
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
       if (normalizedSearch && !row.method_name.toLowerCase().includes(normalizedSearch)) {
         return false;
       }
-      return methodMatchesRankingsFilters(row, skillsByMethod[row.method_id] ?? [], filters);
+      return methodMatchesRankingsFilters(row, skillsByMethod[row.method_id] ?? [], rankingsFilters);
     });
-  }, [rows, normalizedSearch, skillsByMethod, filters]);
+  }, [rows, normalizedSearch, skillsByMethod, rankingsFilters]);
 
   const tableRows = useMemo(() => {
     const source = rerankActive ?
@@ -198,11 +221,11 @@ export default function OsrsMmgRankingsPage() {
   }, [rerankActive, filteredRows, disabledMethodIds, draft.kph_by_method_id, rankByMethodId]);
 
   const bulkTargetIds = useMemo(() => {
-    if (normalizedSearch || rerankActive || rankingsFiltersActive(filters)) {
+    if (normalizedSearch || rerankActive || rankingsFiltersActive(rankingsFilters)) {
       return tableRows.map((row) => row.method_id);
     }
     return filteredRows.slice(0, showTopN).map((row) => row.method_id);
-  }, [normalizedSearch, rerankActive, filters, tableRows, filteredRows, showTopN]);
+  }, [normalizedSearch, rerankActive, rankingsFilters, tableRows, filteredRows, showTopN]);
 
   const bulkAllEnabled =
     bulkTargetIds.length > 0 && bulkTargetIds.every((id) => !disabledMethodIds.has(id));
@@ -303,8 +326,30 @@ export default function OsrsMmgRankingsPage() {
     [rows, draft.kph_by_method_id, disabledMethodIds],
   );
 
+  function onRankingsFiltersChange(next: typeof rankingsFilters) {
+    applyDraft((prev) => ({
+      ...prev,
+      rankings_filters: normalizeRankingsFilters(next),
+    }));
+  }
+
+  function onWomPlayerLoaded(profile: CharacterProfile) {
+    const saved = patchActiveProfileWomPlayer(profile);
+    setActiveProfile(saved);
+    setProfiles(listRankingsProfiles());
+    setSavedDraft((prev) => ({ ...prev, wom_player: profile }));
+    applyDraft((prev) => ({
+      ...prev,
+      wom_player: profile,
+      rankings_filters: {
+        ...normalizeRankingsFilters(prev.rankings_filters),
+        skillLevels: skillLevelsFromCharacterProfile(profile),
+      },
+    }));
+  }
+
   const searchResultCount =
-    normalizedSearch || rerankActive || rankingsFiltersActive(filters) ? tableRows.length : null;
+    normalizedSearch || rerankActive || rankingsFiltersActive(rankingsFilters) ? tableRows.length : null;
 
   return (
     <div className="osrs-mmg">
@@ -370,7 +415,7 @@ export default function OsrsMmgRankingsPage() {
             min={1}
             max={500}
             value={showTopN}
-            disabled={normalizedSearch.length > 0 || rerankActive || rankingsFiltersActive(filters)}
+            disabled={normalizedSearch.length > 0 || rerankActive || rankingsFiltersActive(rankingsFilters)}
             onChange={(e) => {
               const next = Math.max(1, Math.min(500, Number(e.target.value) || 1));
               setShowTopN(next);
@@ -387,10 +432,12 @@ export default function OsrsMmgRankingsPage() {
         </button>
 
         <OsrsMmgRankingsFilter
-          filters={filters}
+          filters={rankingsFilters}
+          womPlayer={draft.wom_player}
           methodTypeOptions={filterOptions.methodTypes}
           intensityOptions={filterOptions.intensities}
-          onChange={setFilters}
+          onChange={onRankingsFiltersChange}
+          onWomPlayerLoaded={onWomPlayerLoaded}
         />
 
         <OsrsMmgKphToolbar onImported={() => setPrefsVersion((n) => n + 1)} />

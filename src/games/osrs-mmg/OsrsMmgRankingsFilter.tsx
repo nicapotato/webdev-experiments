@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
+import { loadWomPlayer, refreshWomPlayer, WomApiError } from "../osrs-character/womClient";
+import type { CharacterProfile } from "../osrs-character/types";
 import { skillIconUrl } from "./skillIconUrl";
 import {
   EMPTY_RANKINGS_FILTERS,
@@ -10,24 +14,44 @@ import {
 
 type Props = {
   filters: RankingsFilters;
+  womPlayer: CharacterProfile | null;
   methodTypeOptions: string[];
   intensityOptions: string[];
   onChange: (filters: RankingsFilters) => void;
+  onWomPlayerLoaded: (profile: CharacterProfile) => void;
 };
 
 function toggleValue(list: string[], value: string): string[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
+function formatSnapshotAge(value: string | null): string {
+  if (!value) return "unknown date";
+  return new Date(value).toLocaleString("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 export function OsrsMmgRankingsFilter({
   filters,
+  womPlayer,
   methodTypeOptions,
   intensityOptions,
   onChange,
+  onWomPlayerLoaded,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [usernameInput, setUsernameInput] = useState("");
+  const [womLoading, setWomLoading] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const active = rankingsFiltersActive(filters);
+
+  useEffect(() => {
+    if (womPlayer?.displayName && !usernameInput) {
+      setUsernameInput(womPlayer.displayName);
+    }
+  }, [womPlayer, usernameInput]);
 
   useEffect(() => {
     if (!open) return;
@@ -50,19 +74,86 @@ export function OsrsMmgRankingsFilter({
     onChange({ ...filters, skillLevels: nextLevels });
   }
 
+  async function runWomLookup(mode: "load" | "refresh") {
+    const username = usernameInput.trim() || womPlayer?.username || "";
+    if (!username) {
+      toast.error("Enter a RuneScape name first");
+      return;
+    }
+
+    setWomLoading(true);
+    try {
+      const result =
+        mode === "refresh" ? await refreshWomPlayer(username) : await loadWomPlayer(username);
+      onWomPlayerLoaded(result.profile);
+      setUsernameInput(result.profile.displayName);
+      toast.success(mode === "refresh" ? "Character refreshed" : "Skill levels applied from WOM");
+    } catch (err) {
+      const message =
+        err instanceof WomApiError ? err.message
+        : err instanceof Error ? err.message : "WOM lookup failed";
+      toast.error(message);
+    } finally {
+      setWomLoading(false);
+    }
+  }
+
   return (
     <div className="osrs-mmg__filter-menu" ref={rootRef}>
       <button
         type="button"
-        className={active ? "osrs-mmg__btn osrs-mmg__btn--active" : "osrs-mmg__btn osrs-mmg__btn--ghost"}
+        className={active || womPlayer ? "osrs-mmg__btn osrs-mmg__btn--active" : "osrs-mmg__btn osrs-mmg__btn--ghost"}
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        Filter{active ? " •" : ""}
+        Filter{active || womPlayer ? " •" : ""}
       </button>
 
       {open ? (
         <div className="osrs-mmg__filter-popout">
+          <div className="osrs-mmg__filter-section">
+            <h3>Character (Wise Old Man)</h3>
+            <label className="osrs-mmg__field">
+              RuneScape name
+              <input
+                className="osrs-mmg__search-input"
+                type="text"
+                maxLength={12}
+                placeholder="Lookup skills from WOM"
+                value={usernameInput}
+                disabled={womLoading}
+                onChange={(e) => setUsernameInput(e.target.value)}
+              />
+            </label>
+            <div className="osrs-mmg__filter-wom-actions">
+              <button
+                type="button"
+                className="osrs-mmg__btn"
+                disabled={womLoading || !usernameInput.trim()}
+                onClick={() => void runWomLookup("load")}
+              >
+                {womLoading ? "Looking up…" : "Lookup"}
+              </button>
+              <button
+                type="button"
+                className="osrs-mmg__btn osrs-mmg__btn--ghost"
+                disabled={womLoading || (!usernameInput.trim() && !womPlayer)}
+                onClick={() => void runWomLookup("refresh")}
+              >
+                Refresh
+              </button>
+              <Link className="osrs-mmg__filter-link" to="/osrs-mmg/c">
+                Character page
+              </Link>
+            </div>
+            {womPlayer ? (
+              <p className="osrs-mmg__filter-hint">
+                {womPlayer.displayName} ({womPlayer.playerType}) — snapshot{" "}
+                {formatSnapshotAge(womPlayer.snapshotCreatedAt ?? womPlayer.fetchedAt)}
+              </p>
+            ) : null}
+          </div>
+
           <div className="osrs-mmg__filter-section">
             <h3>Method type</h3>
             <div className="osrs-mmg__filter-checks">
@@ -152,7 +243,7 @@ export function OsrsMmgRankingsFilter({
             <button
               type="button"
               className="osrs-mmg__btn osrs-mmg__btn--ghost"
-              disabled={!active}
+              disabled={!active && !womPlayer}
               onClick={() => onChange(EMPTY_RANKINGS_FILTERS)}
             >
               Clear filters

@@ -16,6 +16,7 @@ export {
   deleteRankingsProfile,
   getActiveRankingsProfile,
   listRankingsProfiles,
+  patchActiveProfileWomPlayer,
   saveActiveRankingsProfile,
   setActiveRankingsProfile,
 } from "./rankingsProfiles";

@@ -1758,6 +1758,25 @@ body,
   color: var(--osrs-btn-text);
 }
 
+.osrs-mmg__filter-wom-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.osrs-mmg__filter-link {
+  margin-left: auto;
+  font-size: 0.82rem;
+  color: var(--osrs-link);
+  text-decoration: none;
+}
+
+.osrs-mmg__filter-link:hover {
+  text-decoration: underline;
+}
+
 .osrs-mmg__filter-actions {
   display: flex;
   justify-content: flex-end;
