@@ -7,7 +7,8 @@ JS_PROJECTS ?= $(HOME)/Documents/repo/project/javascript-projects/2025
 NEXTJS_PUBLIC_GAMES ?= $(HOME)/Documents/repo/project/fullstack-ai-app/lang-js/nextjs-frontend/public/games
 
 OSRS_DATA_DIR := data/osrs-mmg
-OSRS_S3_PREFIX := s3://prod-public-mindtricks-data/dev/client/osrs-mmg
+# Client bundle on prod-public-mindtricks-data (dev/ = pipeline default; prod/ = production frontend)
+OSRS_S3_PREFIX ?= s3://prod-public-mindtricks-data/prod/client/osrs-mmg
 
 help: ## Show targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'

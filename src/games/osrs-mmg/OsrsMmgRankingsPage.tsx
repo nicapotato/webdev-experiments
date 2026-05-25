@@ -196,7 +196,7 @@ export default function OsrsMmgRankingsPage() {
     : filteredRows;
 
     const sorted = sortRowsByProfit(source, draft.kph_by_method_id);
-    if (normalizedSearch || rerankActive) {
+    if (normalizedSearch || rankingsFiltersActive(rankingsFilters)) {
       return sorted;
     }
     return sorted.slice(0, showTopN);
@@ -205,6 +205,7 @@ export default function OsrsMmgRankingsPage() {
     rerankActive,
     disabledMethodIds,
     normalizedSearch,
+    rankingsFilters,
     showTopN,
     draft.kph_by_method_id,
   ]);
@@ -220,12 +221,10 @@ export default function OsrsMmgRankingsPage() {
     return new Map(reranked.map((row, index) => [row.method_id, index + 1]));
   }, [rerankActive, filteredRows, disabledMethodIds, draft.kph_by_method_id, rankByMethodId]);
 
-  const bulkTargetIds = useMemo(() => {
-    if (normalizedSearch || rerankActive || rankingsFiltersActive(rankingsFilters)) {
-      return tableRows.map((row) => row.method_id);
-    }
-    return filteredRows.slice(0, showTopN).map((row) => row.method_id);
-  }, [normalizedSearch, rerankActive, rankingsFilters, tableRows, filteredRows, showTopN]);
+  const bulkTargetIds = useMemo(
+    () => tableRows.map((row) => row.method_id),
+    [tableRows],
+  );
 
   const bulkAllEnabled =
     bulkTargetIds.length > 0 && bulkTargetIds.every((id) => !disabledMethodIds.has(id));
@@ -349,7 +348,7 @@ export default function OsrsMmgRankingsPage() {
   }
 
   const searchResultCount =
-    normalizedSearch || rerankActive || rankingsFiltersActive(rankingsFilters) ? tableRows.length : null;
+    normalizedSearch || rankingsFiltersActive(rankingsFilters) ? tableRows.length : null;
 
   return (
     <div className="osrs-mmg">
@@ -415,7 +414,7 @@ export default function OsrsMmgRankingsPage() {
             min={1}
             max={500}
             value={showTopN}
-            disabled={normalizedSearch.length > 0 || rerankActive || rankingsFiltersActive(rankingsFilters)}
+            disabled={normalizedSearch.length > 0 || rankingsFiltersActive(rankingsFilters)}
             onChange={(e) => {
               const next = Math.max(1, Math.min(500, Number(e.target.value) || 1));
               setShowTopN(next);

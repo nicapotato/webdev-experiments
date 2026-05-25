@@ -104,6 +104,23 @@ body,
   transform: translateY(-0.05em);
 }
 
+/* OSRS MMG: translucent chrome, fully opaque arrow */
+.app-root--game:has(.osrs-mmg) .floating-back {
+  background: rgba(255, 222, 68, 0.6);
+  border-color: rgba(13, 13, 13, 0.6);
+  box-shadow: 6px 6px 0 rgba(13, 13, 13, 0.24);
+}
+
+.app-root--game:has(.osrs-mmg) .floating-back:hover {
+  background: rgba(255, 222, 68, 0.72);
+  border-color: rgba(13, 13, 13, 0.72);
+  box-shadow: 8px 8px 0 rgba(13, 13, 13, 0.28);
+}
+
+.app-root--game:has(.osrs-mmg) .floating-back__glyph {
+  opacity: 1;
+}
+
 /* Iframe / react game: fills full viewport (no header band) */
 .iframe-stage {
   flex: 1 1 auto;
@@ -1167,6 +1184,18 @@ body,
 
   .floating-back:hover {
     filter: brightness(1.06);
+  }
+
+  .app-root--game:has(.osrs-mmg) .floating-back {
+    background: rgba(255, 222, 68, 0.6);
+    border-color: rgba(13, 13, 13, 0.6);
+    box-shadow: 6px 6px 0 rgba(13, 13, 13, 0.16);
+  }
+
+  .app-root--game:has(.osrs-mmg) .floating-back:hover {
+    background: rgba(255, 222, 68, 0.72);
+    border-color: rgba(13, 13, 13, 0.72);
+    box-shadow: 8px 8px 0 rgba(13, 13, 13, 0.2);
   }
 
   .iframe-stage {

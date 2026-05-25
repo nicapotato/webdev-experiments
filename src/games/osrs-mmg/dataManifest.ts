@@ -4,7 +4,7 @@ import { MANIFEST_URL } from "./dataConfig";
 export async function fetchManifest(): Promise<DataManifest> {
   const res = await fetch(MANIFEST_URL, { cache: "no-cache" });
   if (!res.ok) {
-    throw new Error(`Failed to load manifest (${res.status})`);
+    throw new Error(`Failed to load manifest (${res.status}) from ${MANIFEST_URL}`);
   }
   return (await res.json()) as DataManifest;
 }
