@@ -1,4 +1,4 @@
-import { u as r, a as n, r as i, t as u } from "./index-N1w0gYNI.js";
+import { u as r, a as n, r as i, t as u } from "./index-CSXUHui8.js";
 const s = (t, e) => `mp_join:${t}:${e}`;
 function p(t, e) {
   sessionStorage.setItem(s(t, e), "1");
