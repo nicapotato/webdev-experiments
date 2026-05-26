@@ -7,10 +7,12 @@ import {
   LOCAL_MANIFEST_URL,
   duckdbUrlFromManifest,
 } from "./dataConfig";
-import { fetchDuckdbBytes, readCachedDuckdb, writeCachedDuckdb } from "./dataCache";
+import { fetchDuckdbBytes, readCachedDuckdb, writeCachedDuckdb, type FetchProgress } from "./dataCache";
 import { fetchManifest, isManifestStale } from "./dataManifest";
 import { initDuckdbWithBytes } from "./duckdbClient";
 import type { DataManifest } from "./types";
+
+export type LoadPhase = "manifest" | "cache" | "download" | "open" | null;
 
 type OsrsDataState = {
   ready: boolean;
@@ -19,6 +21,8 @@ type OsrsDataState = {
   manifest: DataManifest | null;
   fromCache: boolean;
   localMode: boolean;
+  loadPhase: LoadPhase;
+  downloadProgress: FetchProgress | null;
 };
 
 export function useOsrsData(): OsrsDataState & { reload: () => void } {
@@ -29,6 +33,8 @@ export function useOsrsData(): OsrsDataState & { reload: () => void } {
     manifest: null,
     fromCache: false,
     localMode: isLocalDuckdbMode(),
+    loadPhase: isLocalDuckdbMode() || isRemoteDataEnabled() ? "manifest" : null,
+    downloadProgress: null,
   });
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -45,6 +51,8 @@ export function useOsrsData(): OsrsDataState & { reload: () => void } {
         manifest: null,
         fromCache: false,
         localMode: false,
+        loadPhase: null,
+        downloadProgress: null,
       });
       return;
     }
@@ -52,17 +60,19 @@ export function useOsrsData(): OsrsDataState & { reload: () => void } {
     let cancelled = false;
 
     async function bootLocal(): Promise<void> {
-      const res = await fetch(LOCAL_DUCKDB_URL, { cache: "no-cache" });
-      if (!res.ok) {
-        throw new Error(
-          `Failed to load local DuckDB (${res.status}). Run: make import-osrs-db`,
-        );
-      }
-      const bytes = await res.arrayBuffer();
-      const cacheKey =
-        res.headers.get("etag") ??
-        res.headers.get("last-modified") ??
-        `${LOCAL_DUCKDB_URL}:${bytes.byteLength}`;
+      setState((s) => ({
+        ...s,
+        loadPhase: "download",
+        downloadProgress: { loaded: 0, total: null },
+      }));
+
+      const bytes = await fetchDuckdbBytes(LOCAL_DUCKDB_URL, (progress) => {
+        if (!cancelled) {
+          setState((s) => ({ ...s, downloadProgress: progress }));
+        }
+      });
+
+      const cacheKey = `${LOCAL_DUCKDB_URL}:${bytes.byteLength}`;
 
       let manifest: DataManifest | null = null;
       if (LOCAL_MANIFEST_URL) {
@@ -72,6 +82,7 @@ export function useOsrsData(): OsrsDataState & { reload: () => void } {
         }
       }
 
+      setState((s) => ({ ...s, loadPhase: "open", downloadProgress: null }));
       await initDuckdbWithBytes(bytes, cacheKey);
       if (!cancelled) {
         setState({
@@ -81,12 +92,17 @@ export function useOsrsData(): OsrsDataState & { reload: () => void } {
           manifest,
           fromCache: false,
           localMode: true,
+          loadPhase: null,
+          downloadProgress: null,
         });
       }
     }
 
     async function bootRemote(): Promise<void> {
+      setState((s) => ({ ...s, loadPhase: "manifest", downloadProgress: null }));
       const manifest = await fetchManifest();
+
+      setState((s) => ({ ...s, loadPhase: "cache" }));
       const cached = await readCachedDuckdb();
       const stale = isManifestStale(manifest, cached?.sha256 ?? null);
 
@@ -95,13 +111,24 @@ export function useOsrsData(): OsrsDataState & { reload: () => void } {
       if (!stale && cached) {
         bytes = cached.bytes;
         fromCache = true;
+        setState((s) => ({ ...s, loadPhase: "open", downloadProgress: null }));
       } else {
-        bytes = await fetchDuckdbBytes(duckdbUrlFromManifest(manifest));
+        setState((s) => ({
+          ...s,
+          loadPhase: "download",
+          downloadProgress: { loaded: 0, total: null },
+        }));
+        bytes = await fetchDuckdbBytes(duckdbUrlFromManifest(manifest), (progress) => {
+          if (!cancelled) {
+            setState((s) => ({ ...s, downloadProgress: progress }));
+          }
+        });
         await writeCachedDuckdb({
           sha256: manifest.artifacts.database.sha256,
           bytes,
           fetchedAt: new Date().toISOString(),
         });
+        setState((s) => ({ ...s, loadPhase: "open", downloadProgress: null }));
       }
 
       await initDuckdbWithBytes(bytes, manifest.artifacts.database.sha256);
@@ -113,12 +140,20 @@ export function useOsrsData(): OsrsDataState & { reload: () => void } {
           manifest,
           fromCache,
           localMode: false,
+          loadPhase: null,
+          downloadProgress: null,
         });
       }
     }
 
     async function boot() {
-      setState((s) => ({ ...s, loading: true, error: null }));
+      setState((s) => ({
+        ...s,
+        loading: true,
+        error: null,
+        loadPhase: "manifest",
+        downloadProgress: null,
+      }));
       try {
         if (isLocalDuckdbMode()) {
           await bootLocal();
@@ -134,6 +169,8 @@ export function useOsrsData(): OsrsDataState & { reload: () => void } {
             manifest: null,
             fromCache: false,
             localMode: isLocalDuckdbMode(),
+            loadPhase: null,
+            downloadProgress: null,
           });
         }
       }

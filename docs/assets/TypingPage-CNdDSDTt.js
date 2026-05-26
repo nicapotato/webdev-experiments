@@ -1,6 +1,6 @@
-import { r as s, j as e } from "./index-Cug6S6xf.js";
-import { B as v } from "./button-_vUqv0TG.js";
-import "./utils-CnCgCFG9.js";
+import { r as s, j as e } from "./index-N1w0gYNI.js";
+import { B as v } from "./button-Bxcf917H.js";
+import "./utils-D_SBKD6J.js";
 import "./clsx-B-dksMZM.js";
 const m = ["The quick brown fox jumps over the lazy dog. This pangram contains every letter of the alphabet at least once.", "Programming is the process of creating instructions that tell a computer how to perform a task.", "Artificial intelligence is intelligence demonstrated by machines, as opposed to natural intelligence."];
 function B() {

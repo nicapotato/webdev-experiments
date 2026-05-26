@@ -39,10 +39,51 @@ export async function writeCachedDuckdb(artifact: CachedArtifact): Promise<void>
   });
 }
 
-export async function fetchDuckdbBytes(url: string): Promise<ArrayBuffer> {
+export type FetchProgress = {
+  loaded: number;
+  total: number | null;
+};
+
+export async function fetchBytesWithProgress(
+  url: string,
+  onProgress?: (progress: FetchProgress) => void,
+): Promise<ArrayBuffer> {
   const res = await fetch(url, { cache: "no-cache" });
   if (!res.ok) {
     throw new Error(`Failed to download DuckDB (${res.status})`);
   }
-  return res.arrayBuffer();
+
+  const totalHeader = res.headers.get("content-length");
+  const total = totalHeader ? Number(totalHeader) : null;
+
+  if (!res.body || !onProgress) {
+    return res.arrayBuffer();
+  }
+
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let loaded = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    loaded += value.length;
+    onProgress({ loaded, total });
+  }
+
+  const out = new Uint8Array(loaded);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return out.buffer;
+}
+
+export async function fetchDuckdbBytes(
+  url: string,
+  onProgress?: (progress: FetchProgress) => void,
+): Promise<ArrayBuffer> {
+  return fetchBytesWithProgress(url, onProgress);
 }

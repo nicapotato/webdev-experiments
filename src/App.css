@@ -2053,6 +2053,14 @@ body,
   text-decoration: underline;
 }
 
+.osrs-mmg__gp-compact {
+  display: none;
+}
+
+.osrs-mmg__method-rank {
+  display: none;
+}
+
 .osrs-mmg__assumption {
   margin-top: 1rem;
   font-size: 0.9rem;
@@ -2072,6 +2080,51 @@ body,
 .osrs-mmg__banner--loading {
   background: var(--osrs-header-bg);
   color: var(--osrs-text);
+}
+
+.osrs-mmg__load-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.88rem;
+}
+
+.osrs-mmg__load-bytes {
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--osrs-text-muted);
+  white-space: nowrap;
+}
+
+.osrs-mmg__progress {
+  height: 0.35rem;
+  border-radius: 999px;
+  background: rgba(31, 35, 40, 0.08);
+  overflow: hidden;
+}
+
+.osrs-mmg__progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: #0969da;
+  transition: width 0.15s ease-out;
+}
+
+.osrs-mmg__progress-bar--indeterminate {
+  width: 35% !important;
+  animation: osrs-mmg-progress-indeterminate 1.1s ease-in-out infinite;
+}
+
+@keyframes osrs-mmg-progress-indeterminate {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
 }
 
 .osrs-mmg__banner--stale {
@@ -2290,5 +2343,364 @@ body,
   .osrs-mmg__columns,
   .osrs-mmg__summary {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .osrs-mmg__table-scroll--wide {
+    overflow: visible;
+    margin-bottom: 0.65rem;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .osrs-mmg__table--rankings {
+    min-width: 0 !important;
+    display: block;
+  }
+
+  .osrs-mmg__table--rankings thead {
+    display: none;
+  }
+
+  .osrs-mmg__table--rankings tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .osrs-mmg__table--rankings tbody tr {
+    display: grid;
+    grid-template-columns: 1.1rem minmax(0, 1fr) max-content;
+    grid-template-rows: auto auto;
+    column-gap: 0.35rem;
+    row-gap: 0.18rem;
+    align-items: start;
+    padding: 0.38rem 0.42rem;
+    border: 1px solid var(--osrs-border);
+    border-radius: 0.35rem;
+    background: var(--osrs-surface);
+  }
+
+  .osrs-mmg__table--rankings tbody tr td {
+    border: none;
+    padding: 0;
+    font-size: 0.72rem;
+  }
+
+  .osrs-mmg__table--rankings .osrs-mmg__toggle-cell {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    align-self: start;
+    padding-top: 0.05rem;
+  }
+
+  .osrs-mmg__rank-toggle input[type="checkbox"] {
+    width: 0.8rem;
+    height: 0.8rem;
+    margin: 0;
+  }
+
+  .osrs-mmg__rank-cell,
+  .osrs-mmg__type-cell,
+  .osrs-mmg__wiki-gp-cell,
+  .osrs-mmg__members-cell {
+    display: none !important;
+  }
+
+  .osrs-mmg__method-rank {
+    display: inline;
+    color: var(--osrs-text-muted);
+    font-size: 0.65rem;
+    font-weight: 600;
+  }
+
+  .osrs-mmg__method-cell {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    padding-right: 0.35rem;
+    font-size: 0.76rem;
+    line-height: 1.25;
+  }
+
+  .osrs-mmg__method-cell a {
+    display: inline;
+    word-break: break-word;
+  }
+
+  .osrs-mmg__adjusted-gp-cell {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: start;
+    justify-self: end;
+    font-weight: 600;
+    font-size: 0.76rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    line-height: 1.25;
+  }
+
+  .osrs-mmg__gp-full {
+    display: none;
+  }
+
+  .osrs-mmg__gp-compact {
+    display: inline;
+  }
+
+  .osrs-mmg__kph-cell {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+
+  .osrs-mmg__kph-cell .osrs-mmg__kph-input {
+    width: 2.75rem;
+    padding: 0.1rem 0.22rem;
+    font-size: 0.7rem;
+  }
+
+  .osrs-mmg__kph-cell .osrs-mmg__kph-unit {
+    display: none;
+  }
+
+  .osrs-mmg__skills-cell {
+    grid-column: 3;
+    grid-row: 2;
+    display: flex !important;
+    justify-content: flex-end;
+    align-items: center;
+    align-self: center;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .osrs-mmg__skills-cell .osrs-mmg__skills-inline {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 0.1rem;
+    overflow: hidden;
+  }
+
+  .osrs-mmg__skills-cell .osrs-mmg__skill-icon {
+    gap: 0;
+  }
+
+  .osrs-mmg__skills-cell .osrs-mmg__skill-icon img {
+    width: 16px;
+    height: 16px;
+  }
+
+  .osrs-mmg__skills-cell .osrs-mmg__skill-level {
+    display: none;
+  }
+
+  .osrs-mmg__table-row--disabled {
+    opacity: 0.55;
+  }
+}
+
+@media (max-width: 640px) {
+  .osrs-mmg {
+    padding: 4.25rem 0.65rem 1rem;
+    padding-left: max(0.65rem, env(safe-area-inset-left));
+    padding-right: max(0.65rem, env(safe-area-inset-right));
+  }
+
+  .osrs-mmg__header h1 {
+    font-size: 1.15rem;
+    line-height: 1.3;
+  }
+
+  .osrs-mmg__header p,
+  .osrs-mmg__header--compact p {
+    font-size: 0.78rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.35;
+  }
+
+  .osrs-mmg__header--compact h1 {
+    margin-bottom: 0.15rem;
+  }
+
+  .osrs-mmg__banner {
+    margin-bottom: 0.65rem;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.82rem;
+  }
+
+  .osrs-mmg__load-status {
+    font-size: 0.82rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .osrs-mmg__controls {
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .osrs-mmg__controls-grow {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .osrs-mmg__btn,
+  .osrs-mmg__profile-trigger {
+    padding: 0.22rem 0.45rem;
+    font-size: 0.76rem;
+  }
+
+  .osrs-mmg__profile-trigger-name {
+    max-width: 6.5rem;
+  }
+
+  .osrs-mmg__search-input {
+    font-size: 0.8rem;
+    padding: 0.28rem 0.4rem;
+  }
+
+  .osrs-mmg__topn-field--compact {
+    font-size: 0.76rem;
+  }
+
+  .osrs-mmg__topn-field--compact .osrs-mmg__topn-input {
+    width: 3rem;
+    padding: 0.22rem 0.3rem;
+    font-size: 0.76rem;
+  }
+
+  .osrs-mmg__kph-input {
+    width: 4.5rem;
+    padding: 0.2rem 0.3rem;
+    font-size: 0.78rem;
+  }
+
+  .osrs-mmg__kph-unit {
+    font-size: 0.68rem;
+  }
+
+  .osrs-mmg__summary {
+    gap: 0.45rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .osrs-mmg__summary div {
+    padding: 0.5rem 0.55rem;
+  }
+
+  .osrs-mmg__summary span {
+    font-size: 0.75rem;
+  }
+
+  .osrs-mmg__summary strong {
+    font-size: 0.95rem;
+  }
+
+  .osrs-mmg__columns {
+    gap: 0.65rem;
+  }
+
+  .osrs-mmg__panel {
+    padding: 0.6rem;
+  }
+
+  .osrs-mmg__panel h3 {
+    font-size: 0.88rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .osrs-mmg__type-cell {
+    min-width: 0;
+  }
+
+  .osrs-mmg__skill-icon img {
+    width: 16px;
+    height: 16px;
+  }
+
+  .osrs-mmg__skill-level {
+    font-size: 0.62rem;
+  }
+
+  .osrs-mmg__skills h3 {
+    font-size: 0.85rem;
+  }
+
+  .osrs-mmg__skill-chip {
+    padding: 0.22rem 0.4rem;
+    font-size: 0.76rem;
+  }
+
+  .osrs-mmg__skill-chip img {
+    width: 16px;
+    height: 16px;
+  }
+
+  .osrs-mmg__kph-row {
+    gap: 0.45rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .osrs-mmg__kph-row button {
+    padding: 0.28rem 0.5rem;
+    font-size: 0.78rem;
+  }
+
+  .osrs-mmg__filter-popout {
+    right: auto;
+    left: 0;
+    width: min(22rem, calc(100vw - 1.3rem));
+    max-height: min(70vh, 36rem);
+    padding: 0.65rem;
+  }
+
+  .osrs-mmg__filter-section + .osrs-mmg__filter-section {
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+  }
+
+  .osrs-mmg__filter-section h3 {
+    font-size: 0.76rem;
+  }
+
+  .osrs-mmg__filter-check {
+    font-size: 0.78rem;
+  }
+
+  .osrs-mmg__filter-skills-scroll {
+    max-height: 12rem;
+  }
+
+  .osrs-mmg__trends-header {
+    gap: 0.45rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .osrs-mmg__period-row {
+    gap: 0.3rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .osrs-mmg__period-row button {
+    padding: 0.25rem 0.45rem;
+    font-size: 0.74rem;
+  }
+
+  .osrs-mmg__panel.osrs-mmg__trends {
+    margin-top: 0.65rem;
+  }
+
+  .osrs-mmg__assumption {
+    font-size: 0.78rem;
+    margin-top: 0.65rem;
+  }
+
+  .osrs-mmg__profile-dropdown {
+    min-width: 12rem;
   }
 }

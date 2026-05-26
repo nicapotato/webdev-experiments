@@ -94,7 +94,19 @@ export default function OsrsMmgCalculatorPage() {
   }
 
   if (isLiveDataEnabled() && data.loading) {
-    return <div className="osrs-mmg"><p>Loading data…</p></div>;
+    return (
+      <div className="osrs-mmg">
+        <OsrsMmgDataBanner
+          loading={data.loading}
+          error={data.error}
+          manifest={data.manifest}
+          fromCache={data.fromCache}
+          loadPhase={data.loadPhase}
+          downloadProgress={data.downloadProgress}
+          onReload={data.reload}
+        />
+      </div>
+    );
   }
 
   if (loadError) {
@@ -124,6 +136,8 @@ export default function OsrsMmgCalculatorPage() {
           error={data.error}
           manifest={data.manifest}
           fromCache={data.fromCache}
+          loadPhase={data.loadPhase}
+          downloadProgress={data.downloadProgress}
           onReload={data.reload}
         />
       ) : null}

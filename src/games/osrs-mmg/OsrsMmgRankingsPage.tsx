@@ -25,7 +25,7 @@ import {
   setRankingEnabledInDraft,
 } from "./rankingsDraft";
 import { RankingsUndoStack } from "./rankingsUndo";
-import { formatGp } from "./mmgCalc";
+import { formatGp, formatGpCompact } from "./mmgCalc";
 import { OsrsMmgDataBanner } from "./OsrsMmgDataBanner";
 import { OsrsMmgKphToolbar } from "./OsrsMmgKphToolbar";
 import { OsrsMmgProfileMenu } from "./OsrsMmgProfileMenu";
@@ -363,6 +363,8 @@ export default function OsrsMmgRankingsPage() {
           error={data.error}
           manifest={data.manifest}
           fromCache={data.fromCache}
+          loadPhase={data.loadPhase}
+          downloadProgress={data.downloadProgress}
           onReload={data.reload}
         />
       ) : (
@@ -446,7 +448,7 @@ export default function OsrsMmgRankingsPage() {
         <table className="osrs-mmg__table osrs-mmg__table--rankings">
           <thead>
             <tr>
-              <th className="osrs-mmg__rank-bulk-head">
+              <th className="osrs-mmg__rank-bulk-head osrs-mmg__toggle-cell">
                 <label className="osrs-mmg__rank-toggle">
                   <input
                     type="checkbox"
@@ -459,14 +461,14 @@ export default function OsrsMmgRankingsPage() {
                   <span className="osrs-mmg__sr-only">Toggle all visible methods in rankings</span>
                 </label>
               </th>
-              <th>#</th>
-              <th>Method</th>
-              <th>Type</th>
-              <th>Skills</th>
-              <th>Wiki GP/h</th>
-              <th>Your kph</th>
-              <th>Adjusted GP/h</th>
-              <th>Members</th>
+              <th className="osrs-mmg__rank-cell">#</th>
+              <th className="osrs-mmg__method-cell">Method</th>
+              <th className="osrs-mmg__type-cell">Type</th>
+              <th className="osrs-mmg__skills-cell">Skills</th>
+              <th className="osrs-mmg__wiki-gp-cell">Wiki GP/h</th>
+              <th className="osrs-mmg__kph-cell">Your kph</th>
+              <th className="osrs-mmg__adjusted-gp-cell">Adjusted GP/h</th>
+              <th className="osrs-mmg__members-cell">Members</th>
             </tr>
           </thead>
           <tbody>
@@ -475,12 +477,13 @@ export default function OsrsMmgRankingsPage() {
               const adjusted = profitAtKph(row, kph);
               const isDisabled = disabledMethodIds.has(row.method_id);
               const rank = displayRankByMethodId.get(row.method_id);
+              const rankLabel = rerankActive || !isDisabled ? rank : null;
               return (
                 <tr
                   key={row.method_id}
                   className={isDisabled ? "osrs-mmg__table-row--disabled" : undefined}
                 >
-                  <td>
+                  <td className="osrs-mmg__toggle-cell">
                     <label className="osrs-mmg__rank-toggle">
                       <input
                         type="checkbox"
@@ -492,29 +495,49 @@ export default function OsrsMmgRankingsPage() {
                       </span>
                     </label>
                   </td>
-                  <td>{rerankActive || !isDisabled ? rank : "—"}</td>
-                  <td>
+                  <td className="osrs-mmg__rank-cell">{rankLabel ?? "—"}</td>
+                  <td className="osrs-mmg__method-cell">
+                    {rankLabel != null ?
+                      <span className="osrs-mmg__method-rank" aria-hidden="true">
+                        {rankLabel}.{" "}
+                      </span>
+                    : null}
                     <Link to={`/osrs-mmg/m/${row.method_id}`}>{row.method_name}</Link>
                   </td>
                   <td className="osrs-mmg__type-cell">{formatMethodCategories(row.categories)}</td>
-                  <td>
+                  <td className="osrs-mmg__skills-cell">
                     <OsrsMmgSkillIcons skills={skillsByMethod[row.method_id] ?? []} compact />
                   </td>
-                  <td>{row.wiki_hourly_profit_gp != null ? formatGp(row.wiki_hourly_profit_gp) : "—"}</td>
-                  <td>
+                  <td className="osrs-mmg__wiki-gp-cell">
+                    {row.wiki_hourly_profit_gp != null ?
+                      <>
+                        <span className="osrs-mmg__gp-full">{formatGp(row.wiki_hourly_profit_gp)}</span>
+                        <span className="osrs-mmg__gp-compact">
+                          {formatGpCompact(row.wiki_hourly_profit_gp)} gp
+                        </span>
+                      </>
+                    : "—"}
+                  </td>
+                  <td className="osrs-mmg__kph-cell">
                     <input
                       className="osrs-mmg__kph-input"
                       type="number"
                       min={0}
                       step="any"
                       value={kph}
+                      title={row.completions_unit_name}
                       onFocus={onKphFocus}
                       onChange={(e) => onDraftKphChange(row.method_id, Number(e.target.value))}
                     />
                     <span className="osrs-mmg__kph-unit">{row.completions_unit_name}</span>
                   </td>
-                  <td>{formatGp(adjusted)}</td>
-                  <td>{row.is_members ? "Yes" : row.is_members === false ? "No" : "—"}</td>
+                  <td className="osrs-mmg__adjusted-gp-cell">
+                    <span className="osrs-mmg__gp-full">{formatGp(adjusted)}</span>
+                    <span className="osrs-mmg__gp-compact">{formatGpCompact(adjusted)} gp</span>
+                  </td>
+                  <td className="osrs-mmg__members-cell">
+                    {row.is_members ? "Yes" : row.is_members === false ? "No" : "—"}
+                  </td>
                 </tr>
               );
             })}
