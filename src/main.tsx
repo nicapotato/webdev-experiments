@@ -5,7 +5,7 @@ import { App } from "./App";
 import "./index.css";
 import "./App.css";
 
-// Trigger CICD
+// Trigger CICD 1
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
