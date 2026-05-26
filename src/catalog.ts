@@ -15,6 +15,22 @@ export type HubEntry =
       path: string
     }
 
+/** Standalone apps and tools (not games). */
+export const HUB_APPS_ENTRIES: HubEntry[] = [
+  {
+    id: 'osrs-mmg',
+    title: 'OSRS MMG Calculator',
+    kind: 'react',
+    path: '/osrs-mmg',
+  },
+  {
+    id: 'osrs-character',
+    title: 'OSRS Character',
+    kind: 'react',
+    path: '/osrs-mmg/c',
+  },
+]
+
 /** Original work and experiments (not from Chris Courses tutorials). */
 export const HUB_PERSONAL_ENTRIES: HubEntry[] = [
   {
@@ -92,6 +108,7 @@ export const HUB_CHRIS_COURSES_ENTRIES: HubEntry[] = [
 ]
 
 export const HUB_ENTRIES: HubEntry[] = [
+  ...HUB_APPS_ENTRIES,
   ...HUB_PERSONAL_ENTRIES,
   ...HUB_CHRIS_COURSES_ENTRIES,
 ]
