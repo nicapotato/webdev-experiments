@@ -12,7 +12,7 @@ import {
 } from "recharts";
 
 import { axisTick, chartMargin, legendProps, OSRS_CHART_THEME, tooltipProps } from "./chartTheme";
-import { fetchTopNComparison, fetchTrendSeries } from "./duckdbQueries";
+import { fetchTopNComparison, fetchTrendSeries, hasPriceMetricsData } from "./duckdbQueries";
 import { formatGp } from "./mmgCalc";
 import { comparePeriodKeys, formatPeriodTooltipLabel, periodXAxisProps, toIsoDate } from "./periodFormat";
 import type { MethodRankRow, PeriodGranularity, TrendPoint } from "./types";
@@ -42,6 +42,23 @@ export function OsrsMmgTrendsPanel({
   >([]);
   const [showVolume, setShowVolume] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [volumeAvailable, setVolumeAvailable] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void hasPriceMetricsData().then((available) => {
+      if (!cancelled) setVolumeAvailable(available);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!volumeAvailable && showVolume) {
+      setShowVolume(false);
+    }
+  }, [volumeAvailable, showVolume]);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,7 +119,7 @@ export function OsrsMmgTrendsPanel({
               {p}
             </button>
           ))}
-          {mode === "single" ? (
+          {mode === "single" && volumeAvailable ? (
             <label className="osrs-mmg__volume-toggle">
               <input
                 type="checkbox"

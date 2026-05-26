@@ -277,6 +277,45 @@ export async function fetchTopNComparison(
   }));
 }
 
+export async function hasPriceMetricsData(): Promise<boolean> {
+  const rows = await queryRows<{ row_count: number }>(
+    "SELECT count(*)::INTEGER AS row_count FROM price_metrics",
+  );
+  return (rows[0]?.row_count ?? 0) > 0;
+}
+
+export async function fetchMethodIoLines(methodId: string): Promise<
+  {
+    wikiSlug: string;
+    ioType: BreakdownIoType;
+    itemName: string;
+    qtyPerCompletion: number;
+    itemId: number;
+  }[]
+> {
+  const safeId = escapeSqlString(methodId);
+  const rows = await queryRows<{
+    wiki_slug: string;
+    io_type: string;
+    item_name: string;
+    qty_per_completion: number;
+    item_id: number | null;
+  }>(
+    `SELECT wiki_slug, io_type, item_name, qty_per_completion, item_id
+     FROM io_lines
+     WHERE method_id = '${safeId}' AND item_id IS NOT NULL
+     ORDER BY io_type, item_name`,
+  );
+
+  return rows.map((row) => ({
+    wikiSlug: row.wiki_slug,
+    ioType: row.io_type as BreakdownIoType,
+    itemName: row.item_name,
+    qtyPerCompletion: row.qty_per_completion,
+    itemId: row.item_id ?? 0,
+  }));
+}
+
 export async function fetchMethodItemMetrics(
   methodId: string,
   period: PeriodGranularity,

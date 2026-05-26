@@ -48,6 +48,9 @@ export type DataManifest = {
   generated_at: string;
   latest_snapshot_date: string | null;
   method_count: number;
+  client_profile?: "slim" | "full";
+  snapshot_retention_days?: number;
+  includes_price_metrics?: boolean;
   artifacts: {
     database: {
       url: string;

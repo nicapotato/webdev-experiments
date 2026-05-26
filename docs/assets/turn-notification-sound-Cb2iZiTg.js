@@ -1,4 +1,4 @@
-import { r as R, j as a, C as G, S as O, o as Z, p as Q } from "./index-BwsnQWqq.js";
+import { r as R, j as a, C as G, S as O, o as Z, p as Q } from "./index-Cug6S6xf.js";
 import { b as z, C as o, p as h } from "./chess-game-multiplayer-XMnaIFi4.js";
 const Y = ({ board: d, selectedSquare: f, possibleMoves: c = [], onSquareClick: m, sideImagesWidth: u = 0, isSidebarOpen: E = true, showGrid: I = false, currentPlayerColor: H = null, forcedCapture: _ = false, mandatoryPieceSquares: $ = [], singleLegalMoveHighlight: w = false, comboContinuePiece: y = null, checkSquare: b = null }) => {
   const [S, M] = R.useState(64), k = () => {

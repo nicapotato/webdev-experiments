@@ -11,7 +11,12 @@ import {
 } from "recharts";
 
 import { axisTick, chartMargin, legendProps, OSRS_CHART_THEME, tooltipProps } from "./chartTheme";
-import { fetchMethodItemMetrics } from "./duckdbQueries";
+import {
+  fetchMethodIoLines,
+  fetchMethodItemMetrics,
+  hasPriceMetricsData,
+} from "./duckdbQueries";
+import { fetchMethodItemMetricsFromGeApi } from "./gePricesApi";
 import { buildItemBreakdownChartData, OTHER_SERIES_KEY, type BreakdownSeries } from "./itemBreakdown";
 import { formatGp, formatGpCompact, rankItemBreakdown } from "./mmgCalc";
 import { comparePeriodKeys, formatPeriodTooltipLabel, periodXAxisProps } from "./periodFormat";
@@ -75,6 +80,8 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
   const [showVolume, setShowVolume] = useState(true);
   const [rows, setRows] = useState<Awaited<ReturnType<typeof fetchMethodItemMetrics>>>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [usingLiveGe, setUsingLiveGe] = useState(false);
 
   const rank = useMemo(() => rankItemBreakdown(guide, kph), [guide, kph]);
 
@@ -83,9 +90,28 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
     let cancelled = false;
     async function load() {
       setLoading(true);
+      setLoadError(null);
       try {
-        const data = await fetchMethodItemMetrics(methodId, period);
-        if (!cancelled) setRows(data);
+        const bundledPrices = await hasPriceMetricsData();
+        if (bundledPrices) {
+          const data = await fetchMethodItemMetrics(methodId, period);
+          if (!cancelled) {
+            setRows(data);
+            setUsingLiveGe(false);
+          }
+        } else {
+          const ioLines = await fetchMethodIoLines(methodId);
+          const data = await fetchMethodItemMetricsFromGeApi(ioLines, period);
+          if (!cancelled) {
+            setRows(data);
+            setUsingLiveGe(true);
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setRows([]);
+          setLoadError(err instanceof Error ? err.message : String(err));
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -129,6 +155,12 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
         <>
           <p className="osrs-mmg__muted osrs-mmg__breakdown-intro">
             Top 5 items by |GP/h| at your current rate, plus Other for the rest. Solid lines are GE price; dashed lines are GE volume.
+            {usingLiveGe ? (
+              <>
+                {" "}
+                Charts use live GE timeseries (~1 year). Full history back to 2020 is in the Kaggle dataset.
+              </>
+            ) : null}
           </p>
 
           <table className="osrs-mmg__table osrs-mmg__table--compact">
@@ -179,6 +211,7 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
           </div>
 
           {loading ? <p className="osrs-mmg__muted">Loading item charts…</p> : null}
+          {loadError ? <p className="osrs-mmg__banner osrs-mmg__banner--error">{loadError}</p> : null}
 
           {!loading && hasChartData ? (
             <div className="osrs-mmg__chart">
@@ -247,8 +280,8 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
             </div>
           ) : null}
 
-          {!loading && !hasChartData ? (
-            <p className="osrs-mmg__muted">No GE price history yet for these items.</p>
+          {!loading && !loadError && !hasChartData ? (
+            <p className="osrs-mmg__muted">No GE price history available for these items.</p>
           ) : null}
         </>
       ) : null}
