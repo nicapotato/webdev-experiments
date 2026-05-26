@@ -29,6 +29,7 @@ const SnakeSinglePlayerPage = lazy(() =>
   })),
 );
 const TypingPage = lazy(() => import("./games/typing/TypingPage"));
+const TickTackToePage = lazy(() => import("./games/tick-tack-toe/TickTackToePage"));
 const MultiplayerGameLobbyPage = lazy(
   () => import("./games/multiplayer-games/page"),
 );
@@ -152,6 +153,14 @@ export function App() {
               element={
                 <GameShell title="Typing">
                   <TypingPage />
+                </GameShell>
+              }
+            />
+            <Route
+              path="/tick-tack-toe"
+              element={
+                <GameShell title="Tick Tack Toe">
+                  <TickTackToePage />
                 </GameShell>
               }
             />

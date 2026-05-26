@@ -69,6 +69,12 @@ export const HUB_PERSONAL_ENTRIES: HubEntry[] = [
     kind: 'react',
     path: '/typing',
   },
+  {
+    id: 'tick-tack-toe',
+    title: 'Tick Tack Toe',
+    kind: 'react',
+    path: '/tick-tack-toe',
+  },
 ]
 
 /** Hub cards for multiplayer — all open the lobby; game filters are set only in the lobby. */
