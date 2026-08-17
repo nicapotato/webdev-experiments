@@ -1,3 +1,4 @@
+import type { TrendDateRange } from "./duckdbQueries";
 import { toIsoDate } from "./periodFormat";
 import type { BreakdownIoType, MethodItemMetricRow, PeriodGranularity } from "./types";
 
@@ -31,6 +32,12 @@ function midPrice(point: GeTimeseriesPoint): number | null {
 
 function volumeTotal(point: GeTimeseriesPoint): number {
   return Number(point.highPriceVolume ?? 0) + Number(point.lowPriceVolume ?? 0);
+}
+
+function pointInDateRange(timestamp: number, range?: TrendDateRange): boolean {
+  if (!range) return true;
+  const day = toIsoDate(new Date(timestamp * 1000));
+  return day >= range.from && day <= range.to;
 }
 
 function truncatePeriod(date: Date, period: PeriodGranularity): string {
@@ -98,6 +105,7 @@ function aggregateTimeseries(
 export async function fetchMethodItemMetricsFromGeApi(
   ioLines: MethodIoLine[],
   period: PeriodGranularity,
+  dateRange?: TrendDateRange,
 ): Promise<MethodItemMetricRow[]> {
   const linesWithIds = ioLines.filter((line) => line.itemId > 0);
   if (!linesWithIds.length) return [];
@@ -111,7 +119,8 @@ export async function fetchMethodItemMetricsFromGeApi(
 
   const rows: MethodItemMetricRow[] = [];
   for (const { line, series } of seriesByLine) {
-    const aggregated = aggregateTimeseries(series, period);
+    const inRange = series.filter((point) => pointInDateRange(point.timestamp, dateRange));
+    const aggregated = aggregateTimeseries(inRange, period);
     for (const [periodKey, metrics] of aggregated) {
       rows.push({
         period: periodKey,

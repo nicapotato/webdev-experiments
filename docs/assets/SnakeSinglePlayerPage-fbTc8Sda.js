@@ -1,12 +1,12 @@
-import { a as V, r as l, j as e } from "./index-CFCoourc.js";
-import { B as y } from "./button-D1H9CCKv.js";
-import { B as U } from "./badge-D626RaA-.js";
+import { a as V, r as l, j as e } from "./index-C6AelPZl.js";
+import { B as y } from "./button-jww9kw-A.js";
+import { B as U } from "./badge-j1fWMqtk.js";
 import { D as p, c as F, a as L, g as K, B as E, b as R, m as Y, d as q, i as Z, r as J, C as r, e as i, f as Q } from "./snake-game-multiplayer-CvBkv9C2.js";
-import { S as X } from "./SnakePlayBackground-xTZzU6JQ.js";
-import { c as S } from "./createLucideIcon-BvAdo6mr.js";
-import { R as ee } from "./rotate-ccw-BYzadTpB.js";
-import { G as se } from "./grid-3x3-CW2dwg8P.js";
-import "./utils-Cfc2KNsw.js";
+import { S as X } from "./SnakePlayBackground-CzSBt5n-.js";
+import { c as S } from "./createLucideIcon-DBRWNgxE.js";
+import { R as ee } from "./rotate-ccw-BV-aK1J5.js";
+import { G as se } from "./grid-3x3-FStnnztB.js";
+import "./utils-TZIXmWzc.js";
 import "./clsx-B-dksMZM.js";
 import "./gin-DHzzR3IR.js";
 /**

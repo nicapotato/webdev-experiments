@@ -1,4 +1,4 @@
-import { r as s } from "./index-CFCoourc.js";
+import { r as s } from "./index-C6AelPZl.js";
 /**
 * @license lucide-react v1.8.0 - ISC
 *

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Area,
   CartesianGrid,
   ComposedChart,
   Legend,
   Line,
-  Area,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -12,9 +12,10 @@ import {
 } from "recharts";
 
 import { axisTick, chartMargin, legendProps, OSRS_CHART_THEME, tooltipProps } from "./chartTheme";
-import { fetchTopNComparison, fetchTrendSeries, hasPriceMetricsData } from "./duckdbQueries";
+import { fetchTopNComparison, fetchTrendSeries } from "./duckdbQueries";
 import { formatGp } from "./mmgCalc";
 import { comparePeriodKeys, formatPeriodTooltipLabel, periodXAxisProps, toIsoDate } from "./periodFormat";
+import { formatWikiPlainText } from "./wikiText";
 import type { MethodRankRow, PeriodGranularity, TrendPoint } from "./types";
 
 type Props = {
@@ -28,6 +29,45 @@ type Props = {
 const PERIODS: PeriodGranularity[] = ["day", "week", "month", "quarter", "year"];
 const EMPTY_TOP_METHODS: MethodRankRow[] = [];
 
+function SingleTrendTooltip({
+  active,
+  payload,
+  label,
+  period,
+}: {
+  active?: boolean;
+  payload?: { payload?: Record<string, unknown> }[];
+  label?: unknown;
+  period: PeriodGranularity;
+}) {
+  if (!active || !payload?.length || label == null) return null;
+  const point = payload[0]?.payload;
+  if (!point) return null;
+
+  const median = Number(point.median_profit);
+  const p25 = Number(point.p25);
+  const p75 = Number(point.p75);
+
+  return (
+    <div className="osrs-mmg__chart-tooltip" style={tooltipProps.contentStyle}>
+      <p className="osrs-mmg__chart-tooltip-label">
+        {formatPeriodTooltipLabel(String(label), period)}
+      </p>
+      <ul className="osrs-mmg__chart-tooltip-list">
+        {Number.isFinite(median) ? (
+          <li className="osrs-mmg__chart-tooltip-value">Median: {formatGp(median)}</li>
+        ) : null}
+        {Number.isFinite(p25) ? (
+          <li className="osrs-mmg__chart-tooltip-value">25th: {formatGp(p25)}</li>
+        ) : null}
+        {Number.isFinite(p75) ? (
+          <li className="osrs-mmg__chart-tooltip-value">75th: {formatGp(p75)}</li>
+        ) : null}
+      </ul>
+    </div>
+  );
+}
+
 export function OsrsMmgTrendsPanel({
   mode,
   methodId,
@@ -40,25 +80,7 @@ export function OsrsMmgTrendsPanel({
   const [comparison, setComparison] = useState<
     { method_id: string; method_name: string; period: string; profit: number }[]
   >([]);
-  const [showVolume, setShowVolume] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [volumeAvailable, setVolumeAvailable] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    void hasPriceMetricsData().then((available) => {
-      if (!cancelled) setVolumeAvailable(available);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!volumeAvailable && showVolume) {
-      setShowVolume(false);
-    }
-  }, [volumeAvailable, showVolume]);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,7 +106,13 @@ export function OsrsMmgTrendsPanel({
   }, [mode, methodId, period, topN, mode === "topN" ? topMethods : null]);
 
   const chartSeries = useMemo(
-    () => series.map((row) => ({ ...row, period: toIsoDate(row.period) })),
+    () =>
+      series.map((row) => ({
+        ...row,
+        period: toIsoDate(row.period),
+        bandBase: row.p25,
+        bandSpan: Math.max(0, row.p75 - row.p25),
+      })),
     [series],
   );
 
@@ -107,7 +135,9 @@ export function OsrsMmgTrendsPanel({
   return (
     <section className="osrs-mmg__panel osrs-mmg__trends">
       <div className="osrs-mmg__trends-header">
-        <h3>{mode === "single" ? `Trends · ${methodName ?? "Method"}` : "Top methods over time"}</h3>
+        <h3>
+          {mode === "single" ? `Trends · ${formatWikiPlainText(methodName ?? "Method")}` : "Top methods over time"}
+        </h3>
         <div className="osrs-mmg__period-row">
           {PERIODS.map((p) => (
             <button
@@ -119,16 +149,6 @@ export function OsrsMmgTrendsPanel({
               {p}
             </button>
           ))}
-          {mode === "single" && volumeAvailable ? (
-            <label className="osrs-mmg__volume-toggle">
-              <input
-                type="checkbox"
-                checked={showVolume}
-                onChange={(e) => setShowVolume(e.target.checked)}
-              />
-              Item volume
-            </label>
-          ) : null}
         </div>
       </div>
 
@@ -146,60 +166,52 @@ export function OsrsMmgTrendsPanel({
                 {...periodXAxisProps(period)}
               />
               <YAxis
-                yAxisId="profit"
                 tick={axisTick}
                 stroke={OSRS_CHART_THEME.axis}
                 tickFormatter={(v) => `${Math.round(v / 1000)}k`}
               />
-              {showVolume ? (
-                <YAxis
-                  yAxisId="volume"
-                  orientation="right"
-                  tick={axisTick}
-                  stroke={OSRS_CHART_THEME.axis}
-                  tickFormatter={(v) => `${Math.round(v / 1000)}k`}
-                />
-              ) : null}
               <Tooltip
-                formatter={(v: number) => formatGp(v)}
-                labelFormatter={(label) => formatPeriodTooltipLabel(String(label), period)}
-                {...tooltipProps}
+                shared
+                cursor={{ stroke: OSRS_CHART_THEME.axis, strokeDasharray: "3 3" }}
+                content={({ active, payload, label }) => (
+                  <SingleTrendTooltip
+                    active={active}
+                    payload={payload}
+                    label={label}
+                    period={period}
+                  />
+                )}
+                contentStyle={tooltipProps.contentStyle}
+                labelStyle={tooltipProps.labelStyle}
               />
               <Legend {...legendProps} />
               <Area
-                yAxisId="profit"
-                dataKey="p75"
-                stackId="band"
-                fill={OSRS_CHART_THEME.bandP75}
-                stroke={OSRS_CHART_THEME.bandP75Stroke}
-                legendType="line"
-                name="75th percentile"
+                type="monotone"
+                dataKey="bandBase"
+                stackId="percentile"
+                stroke="none"
+                fill="transparent"
+                legendType="none"
+                tooltipType="none"
+                isAnimationActive={false}
               />
               <Area
-                yAxisId="profit"
-                dataKey="p25"
-                stackId="band"
-                fill={OSRS_CHART_THEME.bandP25}
-                stroke={OSRS_CHART_THEME.bandP25Stroke}
-                legendType="line"
-                name="25th percentile"
+                type="monotone"
+                dataKey="bandSpan"
+                stackId="percentile"
+                stroke="none"
+                fill={OSRS_CHART_THEME.percentileBand}
+                name="p25–p75"
+                isAnimationActive={false}
               />
               <Line
-                yAxisId="profit"
                 type="monotone"
                 dataKey="median_profit"
                 stroke={OSRS_CHART_THEME.medianLine}
+                strokeWidth={2}
+                dot={false}
                 name="Median GP/h"
               />
-              {showVolume ? (
-                <Line
-                  yAxisId="volume"
-                  type="monotone"
-                  dataKey="item_volume"
-                  stroke={OSRS_CHART_THEME.volumeLine}
-                  name="GE volume"
-                />
-              ) : null}
             </ComposedChart>
           </ResponsiveContainer>
         </div>

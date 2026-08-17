@@ -12,12 +12,14 @@ import {
 import { axisTick, chartMargin, OSRS_CHART_THEME, tooltipProps } from "./chartTheme";
 import {
   fetchMethodIoLines,
+  fetchMethodItemMetricDateBounds,
   fetchMethodItemMetrics,
   hasPriceMetricsData,
+  type TrendDateRange,
 } from "./duckdbQueries";
 import { fetchMethodItemMetricsFromGeApi } from "./gePricesApi";
 import { buildItemBreakdownChartData, OTHER_SERIES_KEY, type BreakdownSeries } from "./itemBreakdown";
-import { formatGp, formatGpCompact, formatUnitCost, listBreakdownLines } from "./mmgCalc";
+import { calcAtKph, formatGp, formatGpCompact, formatShare, formatUnitCost, listBreakdownLines } from "./mmgCalc";
 import { OsrsMmgChartLegend, useChartLegendVisibility, type ChartLegendItem } from "./OsrsMmgChartLegend";
 import { comparePeriodKeys, formatPeriodTooltipLabel, periodXAxisProps } from "./periodFormat";
 import type { BreakdownIoType, MmgGuide, PeriodGranularity } from "./types";
@@ -185,10 +187,13 @@ function BreakdownLinesChart({
 }
 
 export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState(true);
   const [ioType, setIoType] = useState<BreakdownIoType>("output");
   const [period, setPeriod] = useState<PeriodGranularity>("week");
   const [showVolume, setShowVolume] = useState(true);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [dateBounds, setDateBounds] = useState<{ min: string; max: string } | null>(null);
   const [rows, setRows] = useState<Awaited<ReturnType<typeof fetchMethodItemMetrics>>>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -201,6 +206,25 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
     [guide, kph, ioType],
   );
 
+  const sideTotal = useMemo(() => {
+    const calc = calcAtKph(guide, kph);
+    return ioType === "input" ? calc.inputTotal : calc.outputTotal;
+  }, [guide, kph, ioType]);
+
+  const dateRange = useMemo<TrendDateRange | undefined>(() => {
+    const from = dateFrom || dateBounds?.min;
+    const to = dateTo || dateBounds?.max;
+    if (!from || !to || from > to) return undefined;
+    if (dateBounds && from === dateBounds.min && to === dateBounds.max) return undefined;
+    return { from, to };
+  }, [dateFrom, dateTo, dateBounds]);
+
+  useEffect(() => {
+    setDateFrom("");
+    setDateTo("");
+    setDateBounds(null);
+  }, [methodId]);
+
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
@@ -210,17 +234,25 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
       try {
         const bundledPrices = await hasPriceMetricsData();
         if (bundledPrices) {
-          const data = await fetchMethodItemMetrics(methodId, period);
+          const [data, bounds] = await Promise.all([
+            fetchMethodItemMetrics(methodId, period, dateRange),
+            dateBounds ? Promise.resolve(dateBounds) : fetchMethodItemMetricDateBounds(methodId),
+          ]);
           if (!cancelled) {
             setRows(data);
             setUsingLiveGe(false);
+            if (bounds) setDateBounds(bounds);
           }
         } else {
           const ioLines = await fetchMethodIoLines(methodId);
-          const data = await fetchMethodItemMetricsFromGeApi(ioLines, period);
+          const data = await fetchMethodItemMetricsFromGeApi(ioLines, period, dateRange);
           if (!cancelled) {
             setRows(data);
             setUsingLiveGe(true);
+            if (!dateBounds && data.length > 0) {
+              const days = [...new Set(data.map((row) => row.period))].sort();
+              setDateBounds({ min: days[0], max: days[days.length - 1] });
+            }
           }
         }
       } catch (err) {
@@ -236,7 +268,7 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [enabled, methodId, period]);
+  }, [enabled, methodId, period, dateRange]);
 
   const { chartData, series } = useMemo(
     () => buildItemBreakdownChartData(rows, lines, kph),
@@ -297,10 +329,20 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
     <section className="osrs-mmg__panel osrs-mmg__trends osrs-mmg__item-breakdown">
       <div className="osrs-mmg__trends-header">
         <h3>Item breakdown</h3>
-        <label className="osrs-mmg__volume-toggle">
-          <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-          Show item breakdown
-        </label>
+        <div className="osrs-mmg__breakdown-toggles">
+          <label className="osrs-mmg__volume-toggle">
+            <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+            Show item breakdown
+          </label>
+          <label className="osrs-mmg__volume-toggle">
+            <input
+              type="checkbox"
+              checked={showVolume}
+              onChange={(e) => setShowVolume(e.target.checked)}
+            />
+            GE volume
+          </label>
+        </div>
       </div>
 
       {enabled ? (
@@ -341,6 +383,7 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
                     <th>Item</th>
                     <th>Unit cost</th>
                     <th>GP/h</th>
+                    <th>%</th>
                     <th>Qty/h</th>
                   </tr>
                 </thead>
@@ -350,6 +393,7 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
                       <td>{line.itemName}</td>
                       <td>{formatUnitCost(line)}</td>
                       <td>{formatGp(line.gpPerHour)}</td>
+                      <td>{formatShare(line.gpPerHour, sideTotal)}</td>
                       <td>{line.qtyPerHour.toLocaleString("en-GB", { maximumFractionDigits: 2 })}</td>
                     </tr>
                   ))}
@@ -369,14 +413,28 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
                 {p}
               </button>
             ))}
-            <label className="osrs-mmg__volume-toggle">
-              <input
-                type="checkbox"
-                checked={showVolume}
-                onChange={(e) => setShowVolume(e.target.checked)}
-              />
-              GE volume
-            </label>
+            <div className="osrs-mmg__date-range">
+              <label className="osrs-mmg__field">
+                From
+                <input
+                  type="date"
+                  min={dateBounds?.min}
+                  max={dateTo || dateBounds?.max}
+                  value={dateFrom || dateBounds?.min || ""}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                />
+              </label>
+              <label className="osrs-mmg__field">
+                To
+                <input
+                  type="date"
+                  min={dateFrom || dateBounds?.min}
+                  max={dateBounds?.max}
+                  value={dateTo || dateBounds?.max || ""}
+                  onChange={(e) => setDateTo(e.target.value)}
+                />
+              </label>
+            </div>
           </div>
 
           {loading ? <p className="osrs-mmg__muted">Loading item charts…</p> : null}

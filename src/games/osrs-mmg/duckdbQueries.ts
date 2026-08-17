@@ -61,25 +61,53 @@ export async function fetchTrendDateBounds(methodIds?: string[]): Promise<{ min:
   };
 }
 
+export async function fetchMethodItemMetricDateBounds(
+  methodId: string,
+): Promise<{ min: string; max: string } | null> {
+  const safeId = escapeSqlString(methodId);
+  const rows = await queryRows<{ min_date: Date | string | null; max_date: Date | string | null }>(`
+    SELECT
+      min(pm.scrape_timestamp)::DATE AS min_date,
+      max(pm.scrape_timestamp)::DATE AS max_date
+    FROM io_lines io
+    JOIN price_metrics pm ON pm.item_id = io.item_id
+    WHERE io.method_id = '${safeId}'
+      AND io.item_id IS NOT NULL
+      AND pm.metric IN ('price', 'volume')
+  `);
+
+  const row = rows[0];
+  if (!row?.min_date || !row?.max_date) return null;
+  return {
+    min: toIsoDate(row.min_date),
+    max: toIsoDate(row.max_date),
+  };
+}
+
 export async function fetchMethodRankings(): Promise<MethodRankRow[]> {
   const rows = await queryRows<Omit<MethodRankRow, "categories"> & { categories: unknown }>(`
     SELECT
-      method_id,
-      method_name,
-      method_url,
-      categories,
-      intensity,
-      is_members,
-      default_kph,
-      completions_unit_name,
-      profit_pk,
-      profit_ph,
-      profit_linear_approx,
-      wiki_rank,
-      wiki_hourly_profit_gp,
-      wiki_profit_gp
-    FROM method_rankings
-    ORDER BY wiki_rank NULLS LAST
+      mr.method_id,
+      mr.method_name,
+      mr.method_url,
+      mr.categories,
+      mr.intensity,
+      mr.is_members,
+      mr.default_kph,
+      mr.completions_unit_name,
+      g.input_total_pk,
+      g.input_total_ph,
+      g.output_total_pk,
+      g.output_total_ph,
+      mr.profit_pk,
+      mr.profit_ph,
+      mr.profit_linear_approx,
+      mr.wiki_rank,
+      mr.wiki_hourly_profit_gp,
+      mr.wiki_profit_gp
+    FROM method_rankings mr
+    LEFT JOIN guide_economics g ON g.method_id = mr.method_id
+    ORDER BY mr.wiki_rank NULLS LAST
   `);
 
   return rows.map((row) => ({
@@ -208,37 +236,13 @@ export async function fetchTrendSeries(
     `,
   );
 
-  const volumeRows = await queryRows<{ period: Date | string; item_volume: number }>(
-    `
-    SELECT date_trunc('${trunc}', s.scrape_timestamp) AS period,
-           sum(pm.value) AS item_volume
-    FROM snapshots s
-    JOIN io_lines io ON io.method_id = s.method_id
-    JOIN price_metrics pm ON pm.item_id = io.item_id
-      AND pm.metric = 'volume'
-      AND date_trunc('day', pm.scrape_timestamp) = date_trunc('day', s.scrape_timestamp)
-    WHERE s.method_id = '${safeId}'
-    ${snapshotDateRangeClause("s", dateRange)}
-    GROUP BY 1
-    ORDER BY 1
-    `,
-  );
-
-  const volumeByPeriod = new Map(
-    volumeRows.map((r) => [toIsoDate(r.period), r.item_volume ?? 0]),
-  );
-
-  return rows.map((row) => {
-    const periodKey = toIsoDate(row.period);
-    return {
-      period: periodKey,
-      mean_profit: row.mean_profit ?? 0,
-      median_profit: row.median_profit ?? 0,
-      p25: row.p25 ?? 0,
-      p75: row.p75 ?? 0,
-      item_volume: volumeByPeriod.get(periodKey) ?? null,
-    };
-  });
+  return rows.map((row) => ({
+    period: toIsoDate(row.period),
+    mean_profit: row.mean_profit ?? 0,
+    median_profit: row.median_profit ?? 0,
+    p25: row.p25 ?? 0,
+    p75: row.p75 ?? 0,
+  }));
 }
 
 export async function fetchTopNComparison(

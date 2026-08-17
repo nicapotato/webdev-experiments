@@ -41,6 +41,7 @@ export type MmgCalcResult = {
   inputTotal: number;
   outputTotal: number;
   profit: number;
+  margin: number | null;
 };
 
 export type DataManifest = {
@@ -69,6 +70,10 @@ export type MethodRankRow = {
   is_members: boolean | null;
   default_kph: number;
   completions_unit_name: string;
+  input_total_pk: number | null;
+  input_total_ph: number | null;
+  output_total_pk: number | null;
+  output_total_ph: number | null;
   profit_pk: number;
   profit_ph: number;
   profit_linear_approx: boolean | null;
@@ -85,7 +90,6 @@ export type TrendPoint = {
   median_profit: number;
   p25: number;
   p75: number;
-  item_volume: number | null;
 };
 
 export type KphPreferencesFile = {

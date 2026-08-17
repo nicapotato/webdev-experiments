@@ -25,7 +25,7 @@ import {
   setRankingEnabledInDraft,
 } from "./rankingsDraft";
 import { RankingsUndoStack } from "./rankingsUndo";
-import { formatGp, formatGpCompact } from "./mmgCalc";
+import { formatGp, formatGpCompact, formatMargin, marginTone } from "./mmgCalc";
 import { OsrsMmgDataBanner } from "./OsrsMmgDataBanner";
 import { OsrsMmgKphToolbar } from "./OsrsMmgKphToolbar";
 import { OsrsMmgProfileMenu } from "./OsrsMmgProfileMenu";
@@ -38,7 +38,7 @@ import {
   rankingsFiltersActive,
 } from "./rankingsFilters";
 import { OsrsMmgTrendsPanel } from "./OsrsMmgTrendsPanel";
-import { profitAtKph, rankMethods, sortRowsByProfit, formatMethodCategories } from "./rankMethods";
+import { marginAtKph, profitAtKph, rankMethods, sortRowsByProfit, formatMethodCategories } from "./rankMethods";
 import { SAMPLE_GUIDES } from "./sampleGuides";
 import type { CharacterProfile } from "../osrs-character/types";
 import type { MethodRankRow, RankingsDraftState, RankingsProfile, SkillRequirement } from "./types";
@@ -68,6 +68,10 @@ function sampleToRankRows(): MethodRankRow[] {
     is_members: null,
     default_kph: g.defaultKph,
     completions_unit_name: g.kphUnitName,
+    input_total_pk: g.inputTotalPk,
+    input_total_ph: g.inputTotalPh,
+    output_total_pk: g.outputTotalPk,
+    output_total_ph: g.outputTotalPh,
     profit_pk: g.outputTotalPk - g.inputTotalPk,
     profit_ph: g.outputTotalPh - g.inputTotalPh,
     profit_linear_approx: false,
@@ -186,9 +190,15 @@ export default function OsrsMmgRankingsPage() {
       if (normalizedSearch && !row.method_name.toLowerCase().includes(normalizedSearch)) {
         return false;
       }
-      return methodMatchesRankingsFilters(row, skillsByMethod[row.method_id] ?? [], rankingsFilters);
+      const kph = draft.kph_by_method_id[row.method_id] ?? row.default_kph;
+      return methodMatchesRankingsFilters(
+        row,
+        skillsByMethod[row.method_id] ?? [],
+        rankingsFilters,
+        kph,
+      );
     });
-  }, [rows, normalizedSearch, skillsByMethod, rankingsFilters]);
+  }, [rows, normalizedSearch, skillsByMethod, rankingsFilters, draft.kph_by_method_id]);
 
   const tableRows = useMemo(() => {
     const source = rerankActive ?
@@ -468,6 +478,7 @@ export default function OsrsMmgRankingsPage() {
               <th className="osrs-mmg__wiki-gp-cell">Wiki GP/h</th>
               <th className="osrs-mmg__kph-cell">Your kph</th>
               <th className="osrs-mmg__adjusted-gp-cell">Adjusted GP/h</th>
+              <th className="osrs-mmg__margin-cell">Margin</th>
               <th className="osrs-mmg__members-cell">Members</th>
             </tr>
           </thead>
@@ -475,6 +486,7 @@ export default function OsrsMmgRankingsPage() {
             {tableRows.map((row) => {
               const kph = draft.kph_by_method_id[row.method_id] ?? row.default_kph;
               const adjusted = profitAtKph(row, kph);
+              const margin = marginAtKph(row, kph);
               const isDisabled = disabledMethodIds.has(row.method_id);
               const rank = displayRankByMethodId.get(row.method_id);
               const rankLabel = rerankActive || !isDisabled ? rank : null;
@@ -534,6 +546,9 @@ export default function OsrsMmgRankingsPage() {
                   <td className="osrs-mmg__adjusted-gp-cell">
                     <span className="osrs-mmg__gp-full">{formatGp(adjusted)}</span>
                     <span className="osrs-mmg__gp-compact">{formatGpCompact(adjusted)} gp</span>
+                  </td>
+                  <td className={`osrs-mmg__margin-cell osrs-mmg__margin-cell--${marginTone(margin)}`}>
+                    {formatMargin(margin)}
                   </td>
                   <td className="osrs-mmg__members-cell">
                     {row.is_members ? "Yes" : row.is_members === false ? "No" : "—"}

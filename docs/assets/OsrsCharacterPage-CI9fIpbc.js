@@ -1,5 +1,5 @@
-import { r as o, j as e, L as E, t as c } from "./index-CFCoourc.js";
-import { s as O, g as v, v as S } from "./skillIconUrl-DBpzbTaR.js";
+import { r as o, j as e, L as E, t as c } from "./index-C6AelPZl.js";
+import { s as O, g as v, F as S } from "./skillIconUrl-K4gzJBB6.js";
 import { r as R, l as P, W as b } from "./womClient-DilnkhT5.js";
 const N = "osrs-character-profile-v1";
 function A() {
@@ -33,7 +33,7 @@ function J() {
   const a = A();
   return a ? (S(a), I(), a) : null;
 }
-function B() {
+function F() {
   const l = o.useRef(null), [a, i] = o.useState(""), [n, x] = o.useState(() => J()), [u, d] = o.useState(null), [m, g] = o.useState(false), [j, h] = o.useState(null), [_, w] = o.useState(false);
   o.useEffect(() => {
     function r() {
@@ -83,5 +83,5 @@ function B() {
   }, children: "Import" }), e.jsx("button", { type: "button", className: "osrs-mmg__btn osrs-mmg__btn--ghost", disabled: !n, onClick: k, children: "Clear saved" }), e.jsxs("button", { type: "button", className: "osrs-mmg__btn osrs-mmg__btn--ghost", disabled: !u, onClick: () => w((r) => !r), children: [_ ? "Hide" : "Show", " raw JSON"] }), e.jsx(E, { className: "osrs-mmg__btn osrs-mmg__btn--ghost", to: "/osrs-mmg", children: "Rankings" }), e.jsx("input", { ref: l, type: "file", accept: "application/json", hidden: true, onChange: (r) => void L(r) })] })] }), j ? e.jsx("p", { className: "osrs-character__error", children: j }) : null, n ? e.jsxs(e.Fragment, { children: [e.jsxs("dl", { className: "osrs-character__meta", children: [e.jsxs("div", { children: [e.jsx("dt", { children: "Display name" }), e.jsx("dd", { children: n.displayName })] }), e.jsxs("div", { children: [e.jsx("dt", { children: "Account type" }), e.jsx("dd", { children: n.playerType })] }), e.jsxs("div", { children: [e.jsx("dt", { children: "Combat level" }), e.jsx("dd", { children: n.combatLevel ?? "\u2014" })] }), e.jsxs("div", { children: [e.jsx("dt", { children: "Loaded at" }), e.jsx("dd", { children: p(n.fetchedAt) })] }), e.jsxs("div", { children: [e.jsx("dt", { children: "WOM updated" }), e.jsx("dd", { children: p(n.womUpdatedAt) })] }), e.jsxs("div", { children: [e.jsx("dt", { children: "Snapshot date" }), e.jsx("dd", { children: p(n.snapshotCreatedAt) })] })] }), e.jsx("div", { className: "osrs-mmg__table-scroll", children: e.jsxs("table", { className: "osrs-mmg__table osrs-character__skills-table", children: [e.jsx("thead", { children: e.jsxs("tr", { children: [e.jsx("th", { children: "Skill" }), e.jsx("th", { children: "Level" }), e.jsx("th", { children: "XP" }), e.jsx("th", { children: "Rank" })] }) }), e.jsx("tbody", { children: n.skills.map((r) => e.jsxs("tr", { children: [e.jsx("td", { children: e.jsxs("span", { className: "osrs-character__skill-cell", children: [e.jsx("img", { src: O(r.skillKey), alt: "", width: 20, height: 20 }), r.skillKey] }) }), e.jsx("td", { children: r.level }), e.jsx("td", { children: M(r.experience) }), e.jsx("td", { children: r.rank > 0 ? r.rank.toLocaleString("en-GB") : "\u2014" })] }, r.womMetric)) })] }) })] }) : e.jsx("p", { className: "osrs-character__empty", children: "No character loaded. Enter a name and click Lookup, or Refresh if WOM returns 404." }), _ && u ? e.jsx("pre", { className: "osrs-character__raw", children: JSON.stringify(u.raw, null, 2) }) : null] });
 }
 export {
-  B as default
+  F as default
 };

@@ -9,16 +9,37 @@ function scaleLine(line: IoLine, kph: number): IoLineAtKph {
 }
 
 export function calcAtKph(guide: MmgGuide, kph: number): MmgCalcResult {
+  const inputTotal = guide.inputTotalPk * kph + guide.inputTotalPh;
+  const outputTotal = guide.outputTotalPk * kph + guide.outputTotalPh;
   return {
     kph,
     inputs: guide.inputs.map((line) => scaleLine(line, kph)),
     outputs: guide.outputs.map((line) => scaleLine(line, kph)),
-    inputTotal: guide.inputTotalPk * kph + guide.inputTotalPh,
-    outputTotal: guide.outputTotalPk * kph + guide.outputTotalPh,
-    profit:
-      (guide.outputTotalPk - guide.inputTotalPk) * kph +
-      (guide.outputTotalPh - guide.inputTotalPh),
+    inputTotal,
+    outputTotal,
+    profit: outputTotal - inputTotal,
+    margin: marginRatio(outputTotal, inputTotal),
   };
+}
+
+export function marginRatio(outputHourly: number, inputHourly: number): number | null {
+  if (!Number.isFinite(outputHourly) || !Number.isFinite(inputHourly) || inputHourly <= 0) {
+    return null;
+  }
+  const value = outputHourly / inputHourly;
+  return Number.isFinite(value) ? value : null;
+}
+
+export function formatMargin(value: number | null): string {
+  if (value == null) return "—";
+  return `${value.toLocaleString("en-GB", { maximumFractionDigits: 2, minimumFractionDigits: 2 })}×`;
+}
+
+export function marginTone(value: number | null): "good" | "near" | "bad" | "empty" {
+  if (value == null) return "empty";
+  if (value > 1.05) return "good";
+  if (value < 0.95) return "bad";
+  return "near";
 }
 
 export function formatGp(value: number): string {
@@ -50,6 +71,13 @@ export function unitCostGp(line: Pick<IoLine, "qtyPerCompletion" | "gpPerComplet
 export function formatUnitCost(line: Pick<IoLine, "qtyPerCompletion" | "gpPerCompletion">): string {
   const value = unitCostGp(line);
   return value == null ? "—" : formatGp(value);
+}
+
+export function formatShare(part: number, total: number): string {
+  if (!Number.isFinite(part) || !Number.isFinite(total) || total === 0) return "—";
+  const pct = (part / total) * 100;
+  if (!Number.isFinite(pct)) return "—";
+  return `${pct.toLocaleString("en-GB", { maximumFractionDigits: 1, minimumFractionDigits: 1 })}%`;
 }
 
 function toRankedLine(line: IoLineAtKph, ioType: RankedBreakdownLine["ioType"]): RankedBreakdownLine {

@@ -9,6 +9,7 @@ import {
   EMPTY_RANKINGS_FILTERS,
   OSRS_SKILL_KEYS,
   rankingsFiltersActive,
+  type GroupContentFilter,
   type RankingsFilters,
 } from "./rankingsFilters";
 
@@ -152,6 +153,93 @@ export function OsrsMmgRankingsFilter({
                 {formatSnapshotAge(womPlayer.snapshotCreatedAt ?? womPlayer.fetchedAt)}
               </p>
             ) : null}
+          </div>
+
+          <div className="osrs-mmg__filter-section">
+            <h3>Bank / group</h3>
+            <label className="osrs-mmg__field">
+              Liquid GP
+              <input
+                className="osrs-mmg__search-input"
+                type="number"
+                min={0}
+                step={1}
+                placeholder="No cap"
+                value={filters.liquidGp ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value.trim();
+                  const parsed = Number(raw);
+                  onChange({
+                    ...filters,
+                    liquidGp: raw === "" || !Number.isFinite(parsed) || parsed <= 0 ? null : Math.floor(parsed),
+                  });
+                }}
+              />
+            </label>
+            <p className="osrs-mmg__filter-hint">
+              Hide methods whose hourly input cost is above this budget.
+            </p>
+            <label className="osrs-mmg__field">
+              Group content
+              <select
+                className="osrs-mmg__search-input"
+                value={filters.groupContent}
+                onChange={(e) =>
+                  onChange({
+                    ...filters,
+                    groupContent: e.target.value as GroupContentFilter,
+                  })
+                }
+              >
+                <option value="any">Any</option>
+                <option value="solo">Solo only</option>
+                <option value="group">Group only</option>
+              </select>
+            </label>
+            <div className="osrs-mmg__filter-party-range">
+              <label className="osrs-mmg__field">
+                Party min
+                <input
+                  className="osrs-mmg__search-input"
+                  type="number"
+                  min={1}
+                  max={99}
+                  placeholder="1"
+                  value={filters.partySizeMin ?? ""}
+                  onChange={(e) => {
+                    const raw = e.target.value.trim();
+                    const parsed = Number(raw);
+                    onChange({
+                      ...filters,
+                      partySizeMin: raw === "" || !Number.isFinite(parsed) || parsed <= 0
+                        ? null
+                        : Math.floor(parsed),
+                    });
+                  }}
+                />
+              </label>
+              <label className="osrs-mmg__field">
+                Party max
+                <input
+                  className="osrs-mmg__search-input"
+                  type="number"
+                  min={1}
+                  max={99}
+                  placeholder="—"
+                  value={filters.partySizeMax ?? ""}
+                  onChange={(e) => {
+                    const raw = e.target.value.trim();
+                    const parsed = Number(raw);
+                    onChange({
+                      ...filters,
+                      partySizeMax: raw === "" || !Number.isFinite(parsed) || parsed <= 0
+                        ? null
+                        : Math.floor(parsed),
+                    });
+                  }}
+                />
+              </label>
+            </div>
           </div>
 
           <div className="osrs-mmg__filter-section">

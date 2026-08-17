@@ -22,10 +22,10 @@ export function OsrsMmgSkillIcons({ skills, compact = false }: Props) {
           <img src={skillIconUrl(skill.skillKey)} alt={skill.skillKey} width={20} height={20} />
           {!compact ? (
             <span>
-              {skill.skillKey} {skill.requirementText}
+              {skill.skillKey} {skill.requirementText?.trim() || "—"}
             </span>
           ) : (
-            <span className="osrs-mmg__skill-level">{skill.requirementText}</span>
+            <span className="osrs-mmg__skill-level">{skill.requirementText?.trim() || "—"}</span>
           )}
         </span>
       ))}

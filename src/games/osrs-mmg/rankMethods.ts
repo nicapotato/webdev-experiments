@@ -1,7 +1,31 @@
+import { marginRatio } from "./mmgCalc";
 import type { MethodRankRow } from "./types";
 
 export function profitAtKph(row: Pick<MethodRankRow, "profit_pk" | "profit_ph">, kph: number): number {
   return row.profit_pk * kph + row.profit_ph;
+}
+
+export function hourlyInputAtKph(
+  row: Pick<MethodRankRow, "input_total_pk" | "input_total_ph">,
+  kph: number,
+): number | null {
+  if (row.input_total_pk == null && row.input_total_ph == null) return null;
+  return (row.input_total_pk ?? 0) * kph + (row.input_total_ph ?? 0);
+}
+
+export function hourlyOutputAtKph(
+  row: Pick<MethodRankRow, "output_total_pk" | "output_total_ph">,
+  kph: number,
+): number | null {
+  if (row.output_total_pk == null && row.output_total_ph == null) return null;
+  return (row.output_total_pk ?? 0) * kph + (row.output_total_ph ?? 0);
+}
+
+export function marginAtKph(row: MethodRankRow, kph: number): number | null {
+  const input = hourlyInputAtKph(row, kph);
+  const output = hourlyOutputAtKph(row, kph);
+  if (input == null || output == null) return null;
+  return marginRatio(output, input);
 }
 
 export function rankMethods(

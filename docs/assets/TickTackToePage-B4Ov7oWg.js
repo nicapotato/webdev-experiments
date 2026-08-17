@@ -1,6 +1,6 @@
-import { r as w, j as u } from "./index-CFCoourc.js";
-import { B as v } from "./button-D1H9CCKv.js";
-import "./utils-Cfc2KNsw.js";
+import { r as w, j as u } from "./index-C6AelPZl.js";
+import { B as v } from "./button-jww9kw-A.js";
+import "./utils-TZIXmWzc.js";
 import "./clsx-B-dksMZM.js";
 const S = [[{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 0, col: 2 }], [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 1, col: 2 }], [{ row: 2, col: 0 }, { row: 2, col: 1 }, { row: 2, col: 2 }], [{ row: 0, col: 0 }, { row: 1, col: 0 }, { row: 2, col: 0 }], [{ row: 0, col: 1 }, { row: 1, col: 1 }, { row: 2, col: 1 }], [{ row: 0, col: 2 }, { row: 1, col: 2 }, { row: 2, col: 2 }], [{ row: 0, col: 0 }, { row: 1, col: 1 }, { row: 2, col: 2 }], [{ row: 0, col: 2 }, { row: 1, col: 1 }, { row: 2, col: 0 }]];
 function k() {

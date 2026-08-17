@@ -4,21 +4,24 @@ import { Link, useParams } from "react-router-dom";
 import { isLiveDataEnabled } from "./dataConfig";
 import { fetchGuide } from "./duckdbQueries";
 import { getUserKph, setUserKph } from "./kphPreferences";
-import { calcAtKph, formatGp, formatQty, formatUnitCost } from "./mmgCalc";
+import { calcAtKph, formatGp, formatMargin, formatQty, formatShare, formatUnitCost, marginTone } from "./mmgCalc";
 import { OsrsMmgDataBanner } from "./OsrsMmgDataBanner";
 import { OsrsMmgItemBreakdownPanel } from "./OsrsMmgItemBreakdownPanel";
-import { OsrsMmgSkillRequirements } from "./OsrsMmgSkillRequirements";
+import { OsrsMmgSkillIcons } from "./OsrsMmgSkillIcons";
 import { OsrsMmgTrendsPanel } from "./OsrsMmgTrendsPanel";
 import { SAMPLE_GUIDES } from "./sampleGuides";
 import type { MmgGuide } from "./types";
 import { useOsrsData } from "./useOsrsData";
+import { formatWikiPlainText, splitWikiMetrics } from "./wikiText";
 
 function LineTable({
   title,
   lines,
+  sideTotal,
 }: {
   title: string;
   lines: ReturnType<typeof calcAtKph>["inputs"];
+  sideTotal: number;
 }) {
   return (
     <section className="osrs-mmg__panel osrs-mmg__panel--lines">
@@ -30,6 +33,7 @@ function LineTable({
             <th>Item</th>
             <th>Unit cost</th>
             <th>GP/h</th>
+            <th>%</th>
           </tr>
         </thead>
         <tbody>
@@ -39,6 +43,7 @@ function LineTable({
               <td>{line.itemName}</td>
               <td>{formatUnitCost(line)}</td>
               <td>{formatGp(line.gpPerHour)}</td>
+              <td>{formatShare(line.gpPerHour, sideTotal)}</td>
             </tr>
           ))}
         </tbody>
@@ -128,7 +133,7 @@ export default function OsrsMmgCalculatorPage() {
     <div className="osrs-mmg osrs-mmg--calculator">
       <header className="osrs-mmg__header">
         <p><Link to="/osrs-mmg">← Rankings</Link></p>
-        <h1>{activeGuide.methodName}</h1>
+        <h1>{formatWikiPlainText(activeGuide.methodName)}</h1>
         <p>Adjust completions per hour using the same math as the OSRS Wiki mmgkc gadget.</p>
       </header>
 
@@ -144,46 +149,64 @@ export default function OsrsMmgCalculatorPage() {
         />
       ) : null}
 
-      <OsrsMmgSkillRequirements skills={activeGuide.skillRequirements} />
-
       <div className="osrs-mmg__kph-row">
-        <label className="osrs-mmg__field">
-          {activeGuide.kphUnitName}
-          <input
-            type="number"
-            min={0}
-            step="any"
-            value={kph}
-            onChange={(event) => onKphChange(Number(event.target.value))}
-          />
-        </label>
-        <button type="button" onClick={onResetKph}>
-          Reset
-        </button>
+        <div className="osrs-mmg__kph-controls">
+          <label className="osrs-mmg__field">
+            {activeGuide.kphUnitName}
+            <input
+              type="number"
+              min={0}
+              step="any"
+              value={kph}
+              onChange={(event) => onKphChange(Number(event.target.value))}
+            />
+          </label>
+          <button type="button" onClick={onResetKph}>
+            Reset
+          </button>
+        </div>
+        <div className="osrs-mmg__field osrs-mmg__kph-skills">
+          <span>Skill requirements</span>
+          <OsrsMmgSkillIcons skills={activeGuide.skillRequirements} compact />
+        </div>
       </div>
 
       <section className="osrs-mmg__summary">
-        <div>
+        <div className={result.profit >= 0 ? "osrs-mmg__metric osrs-mmg__metric--profit-up" : "osrs-mmg__metric osrs-mmg__metric--profit-down"}>
           <span>Profit</span>
           <strong>{formatGp(result.profit)}</strong>
         </div>
-        <div>
+        <div className="osrs-mmg__metric osrs-mmg__metric--inputs">
           <span>Inputs</span>
           <strong>{formatGp(result.inputTotal)}</strong>
         </div>
-        <div>
+        <div className="osrs-mmg__metric osrs-mmg__metric--outputs">
           <span>Outputs</span>
           <strong>{formatGp(result.outputTotal)}</strong>
+        </div>
+        <div className={`osrs-mmg__metric osrs-mmg__metric--margin-${marginTone(result.margin)}`}>
+          <span>Margin</span>
+          <strong>{formatMargin(result.margin)}</strong>
         </div>
       </section>
 
       <div className="osrs-mmg__columns">
-        <LineTable title="Inputs" lines={result.inputs} />
-        <LineTable title="Outputs" lines={result.outputs} />
+        <LineTable title="Inputs" lines={result.inputs} sideTotal={result.inputTotal} />
+        <LineTable title="Outputs" lines={result.outputs} sideTotal={result.outputTotal} />
       </div>
 
       {activeGuide.assumptionText ? (
-        <p className="osrs-mmg__assumption">{activeGuide.assumptionText}</p>
+        <p className="osrs-mmg__assumption">
+          {splitWikiMetrics(activeGuide.assumptionText).map((part, index) =>
+            part.metric ? (
+              <strong key={index} className="osrs-mmg__assumption-metric">
+                {part.text}
+              </strong>
+            ) : (
+              <span key={index}>{part.text}</span>
+            ),
+          )}
+        </p>
       ) : null}
 
       {(isLiveDataEnabled() ? data.ready : false) ? (

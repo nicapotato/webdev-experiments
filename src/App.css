@@ -1871,9 +1871,55 @@ html:has(.osrs-mmg) #root {
 
 .osrs-mmg__kph-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 0.75rem;
   margin-bottom: 1rem;
+}
+
+.osrs-mmg__kph-controls {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+.osrs-mmg__kph-controls .osrs-mmg__field,
+.osrs-mmg__kph-skills.osrs-mmg__field {
+  margin-bottom: 0;
+}
+
+.osrs-mmg__kph-controls button {
+  margin-left: 0;
+  min-height: 2.25rem;
+}
+
+.osrs-mmg__kph-row .osrs-mmg__field input {
+  min-height: 2.25rem;
+  box-sizing: border-box;
+}
+
+.osrs-mmg__kph-skills {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.osrs-mmg__kph-skills .osrs-mmg__skills-inline {
+  flex-wrap: wrap;
+  align-items: center;
+  min-height: 2.25rem;
+}
+
+.osrs-mmg__kph-skills .osrs-mmg__skill-icon {
+  align-items: center;
+}
+
+.osrs-mmg__kph-skills .osrs-mmg__skill-level {
+  font-size: 0.85rem;
+  line-height: 1;
+  color: var(--osrs-text);
+  font-variant-numeric: tabular-nums;
 }
 
 .osrs-mmg__kph-unit {
@@ -1884,11 +1930,12 @@ html:has(.osrs-mmg) #root {
 
 .osrs-mmg__summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
   margin-bottom: 1rem;
 }
 
+.osrs-mmg__summary .osrs-mmg__metric,
 .osrs-mmg__summary div {
   background: var(--osrs-surface);
   border: 1px solid var(--osrs-border);
@@ -1906,6 +1953,94 @@ html:has(.osrs-mmg) #root {
 .osrs-mmg__summary strong {
   font-size: 1.1rem;
   color: #0d1117;
+}
+
+.osrs-mmg__metric--profit-up {
+  background: #dafbe1;
+  border-color: #4ac26b;
+}
+
+.osrs-mmg__metric--profit-up strong {
+  color: #1a7f37;
+}
+
+.osrs-mmg__metric--profit-down {
+  background: #ffebe9;
+  border-color: #ff8182;
+}
+
+.osrs-mmg__metric--profit-down strong {
+  color: #cf222e;
+}
+
+.osrs-mmg__metric--inputs {
+  background: #fff8c5;
+  border-color: #d4a72c;
+}
+
+.osrs-mmg__metric--inputs strong {
+  color: #9a6700;
+}
+
+.osrs-mmg__metric--outputs {
+  background: #ddf4ff;
+  border-color: #54aeff;
+}
+
+.osrs-mmg__metric--outputs strong {
+  color: #0969da;
+}
+
+.osrs-mmg__metric--margin-good {
+  background: #dafbe1;
+  border-color: #4ac26b;
+}
+
+.osrs-mmg__metric--margin-good strong {
+  color: #1a7f37;
+}
+
+.osrs-mmg__metric--margin-near {
+  background: #fff8c5;
+  border-color: #d4a72c;
+}
+
+.osrs-mmg__metric--margin-near strong {
+  color: #9a6700;
+}
+
+.osrs-mmg__metric--margin-bad {
+  background: #ffebe9;
+  border-color: #ff8182;
+}
+
+.osrs-mmg__metric--margin-bad strong {
+  color: #cf222e;
+}
+
+.osrs-mmg__metric--margin-empty {
+  background: var(--osrs-header-bg);
+}
+
+.osrs-mmg__margin-cell--good {
+  color: #1a7f37;
+  font-weight: 600;
+}
+
+.osrs-mmg__margin-cell--near {
+  color: #9a6700;
+  font-weight: 600;
+}
+
+.osrs-mmg__margin-cell--bad {
+  color: #cf222e;
+  font-weight: 600;
+}
+
+.osrs-mmg__filter-party-range {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
 }
 
 .osrs-mmg__columns {
@@ -2066,7 +2201,7 @@ html:has(.osrs-mmg) #root {
 }
 
 .osrs-mmg__table-scroll--wide .osrs-mmg__table--rankings {
-  min-width: 1180px;
+  min-width: 1280px;
 }
 
 .osrs-mmg__table--rankings th:nth-child(3),
@@ -2106,6 +2241,11 @@ html:has(.osrs-mmg) #root {
   margin-top: 1rem;
   font-size: 0.9rem;
   color: var(--osrs-text-muted);
+}
+
+.osrs-mmg__assumption-metric {
+  color: #cf222e;
+  font-weight: 700;
 }
 
 .osrs-mmg__banner {
@@ -2254,6 +2394,31 @@ html:has(.osrs-mmg) #root {
   gap: 0.35rem;
   font-size: 0.85rem;
   color: var(--osrs-text);
+}
+
+.osrs-mmg__breakdown-toggles {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+
+.osrs-mmg__date-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.osrs-mmg__date-range .osrs-mmg__field {
+  margin-bottom: 0;
+  font-size: 0.78rem;
+}
+
+.osrs-mmg__date-range input[type="date"] {
+  min-width: 9.5rem;
+  padding: 0.28rem 0.4rem;
 }
 
 .osrs-mmg__breakdown-intro {
@@ -2507,9 +2672,12 @@ html:has(.osrs-mmg) #root {
 }
 
 @media (max-width: 800px) {
-  .osrs-mmg__columns,
-  .osrs-mmg__summary {
+  .osrs-mmg__columns {
     grid-template-columns: 1fr;
+  }
+
+  .osrs-mmg__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -2607,6 +2775,16 @@ html:has(.osrs-mmg) #root {
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     line-height: 1.25;
+  }
+
+  .osrs-mmg__margin-cell {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    align-self: end;
+    margin-top: 1.05rem;
+    font-size: 0.65rem;
+    line-height: 1.2;
   }
 
   .osrs-mmg__gp-full {
