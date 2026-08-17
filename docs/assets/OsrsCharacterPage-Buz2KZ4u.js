@@ -1,4 +1,4 @@
-import { r as o, j as e, L as E, t as c } from "./index-CSXUHui8.js";
+import { r as o, j as e, L as E, t as c } from "./index-BmVL6oCJ.js";
 import { s as O, g as v, v as S } from "./skillIconUrl-DBpzbTaR.js";
 import { r as R, l as P, W as b } from "./womClient-DilnkhT5.js";
 const N = "osrs-character-profile-v1";

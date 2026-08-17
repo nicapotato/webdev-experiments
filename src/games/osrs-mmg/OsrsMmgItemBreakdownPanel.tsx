@@ -16,7 +16,7 @@ import {
   hasPriceMetricsData,
 } from "./duckdbQueries";
 import { fetchMethodItemMetricsFromGeApi } from "./gePricesApi";
-import { buildItemBreakdownChartData, type BreakdownSeries } from "./itemBreakdown";
+import { buildItemBreakdownChartData, OTHER_SERIES_KEY, type BreakdownSeries } from "./itemBreakdown";
 import { formatGp, formatGpCompact, formatUnitCost, listBreakdownLines } from "./mmgCalc";
 import { OsrsMmgChartLegend, useChartLegendVisibility, type ChartLegendItem } from "./OsrsMmgChartLegend";
 import { comparePeriodKeys, formatPeriodTooltipLabel, periodXAxisProps } from "./periodFormat";
@@ -34,7 +34,10 @@ const IO_TABS: { id: BreakdownIoType; label: string }[] = [
   { id: "input", label: "Input" },
 ];
 
-function seriesColor(index: number): string {
+function seriesColor(index: number, seriesKey: string): string {
+  if (seriesKey === OTHER_SERIES_KEY) {
+    return "#57606a";
+  }
   return OSRS_CHART_THEME.colors[index % OSRS_CHART_THEME.colors.length];
 }
 
@@ -49,28 +52,134 @@ function BreakdownTooltip({
   payload,
   label,
   period,
+  formatValue,
 }: {
   active?: boolean;
   payload?: { dataKey?: unknown; name?: unknown; value?: unknown; color?: string }[];
   label?: unknown;
   period: PeriodGranularity;
+  formatValue: (value: number) => string;
 }) {
   if (!active || !payload?.length || label == null) return null;
 
-  const entry = payload[0];
-  const dataKey = String(entry.dataKey ?? "");
-  const isVolume = dataKey.endsWith("__volume");
-  const value = typeof entry.value === "number" ? entry.value : Number(entry.value);
-  if (!Number.isFinite(value)) return null;
+  const rows = payload
+    .map((entry) => {
+      const value = typeof entry.value === "number" ? entry.value : Number(entry.value);
+      return {
+        key: String(entry.dataKey ?? entry.name ?? ""),
+        name: String(entry.name ?? ""),
+        color: entry.color,
+        value,
+      };
+    })
+    .filter((row) => row.key && Number.isFinite(row.value))
+    .sort((a, b) => b.value - a.value);
+
+  if (rows.length === 0) return null;
 
   return (
     <div className="osrs-mmg__chart-tooltip" style={tooltipProps.contentStyle}>
       <p className="osrs-mmg__chart-tooltip-label">
         {formatPeriodTooltipLabel(String(label), period)}
       </p>
-      <p className="osrs-mmg__chart-tooltip-value" style={{ color: entry.color }}>
-        {String(entry.name ?? "")}: {isVolume ? formatVolume(value) : formatGp(value)}
-      </p>
+      <ul className="osrs-mmg__chart-tooltip-list">
+        {rows.map((row) => (
+          <li key={row.key} className="osrs-mmg__chart-tooltip-value" style={{ color: row.color }}>
+            {row.name}: {formatValue(row.value)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function BreakdownLinesChart({
+  title,
+  data,
+  period,
+  series,
+  valueKey,
+  yTickFormatter,
+  formatValue,
+  hiddenKeys,
+  legendItems,
+  onToggle,
+  onIsolate,
+  onShowAll,
+  height,
+}: {
+  title: string;
+  data: ReturnType<typeof buildItemBreakdownChartData>["chartData"];
+  period: PeriodGranularity;
+  series: BreakdownSeries[];
+  valueKey: "priceKey" | "volumeKey";
+  yTickFormatter: (value: number) => string;
+  formatValue: (value: number) => string;
+  hiddenKeys: ReadonlySet<string>;
+  legendItems: ChartLegendItem[];
+  onToggle: (key: string) => void;
+  onIsolate: (key: string) => void;
+  onShowAll: () => void;
+  height: number;
+}) {
+  return (
+    <div className="osrs-mmg__chart">
+      <h4 className="osrs-mmg__chart-title">{title}</h4>
+      <ResponsiveContainer width="100%" height={height}>
+        <ComposedChart data={data} margin={chartMargin}>
+          <CartesianGrid strokeDasharray="3 3" stroke={OSRS_CHART_THEME.grid} />
+          <XAxis
+            dataKey="period"
+            tick={axisTick}
+            stroke={OSRS_CHART_THEME.axis}
+            {...periodXAxisProps(period)}
+          />
+          <YAxis
+            tick={axisTick}
+            stroke={OSRS_CHART_THEME.axis}
+            tickFormatter={yTickFormatter}
+          />
+          <Tooltip
+            shared
+            cursor={{ stroke: OSRS_CHART_THEME.axis, strokeDasharray: "3 3" }}
+            content={({ active, payload, label }) => (
+              <BreakdownTooltip
+                active={active}
+                payload={payload}
+                label={label}
+                period={period}
+                formatValue={formatValue}
+              />
+            )}
+            contentStyle={tooltipProps.contentStyle}
+            labelStyle={tooltipProps.labelStyle}
+          />
+          {series.map((entry, index) => {
+            const dataKey = entry[valueKey];
+            return (
+              <Line
+                key={dataKey}
+                type="monotone"
+                dataKey={dataKey}
+                name={entry.label}
+                stroke={seriesColor(index, entry.key)}
+                connectNulls
+                dot={false}
+                activeDot={{ r: 4 }}
+                hide={hiddenKeys.has(dataKey)}
+                legendType="none"
+              />
+            );
+          })}
+        </ComposedChart>
+      </ResponsiveContainer>
+      <OsrsMmgChartLegend
+        items={legendItems}
+        hiddenKeys={hiddenKeys}
+        onToggle={onToggle}
+        onIsolate={onIsolate}
+        onShowAll={onShowAll}
+      />
     </div>
   );
 }
@@ -84,7 +193,8 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [usingLiveGe, setUsingLiveGe] = useState(false);
-  const legend = useChartLegendVisibility(`${methodId}:${ioType}:${showVolume}`);
+  const priceLegend = useChartLegendVisibility(`${methodId}:${ioType}:price`);
+  const volumeLegend = useChartLegendVisibility(`${methodId}:${ioType}:volume`);
 
   const lines = useMemo(
     () => listBreakdownLines(guide, kph, ioType),
@@ -129,8 +239,8 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
   }, [enabled, methodId, period]);
 
   const { chartData, series } = useMemo(
-    () => buildItemBreakdownChartData(rows, lines),
-    [rows, lines],
+    () => buildItemBreakdownChartData(rows, lines, kph),
+    [rows, lines, kph],
   );
 
   const sortedChartData = useMemo(
@@ -138,36 +248,48 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
     [chartData],
   );
 
-  const legendItems = useMemo(
+  const priceLegendItems = useMemo<ChartLegendItem[]>(
     () =>
-      series.flatMap((entry: BreakdownSeries, index: number) => {
-        const color = seriesColor(index);
-        const items: ChartLegendItem[] = [
-          { key: entry.priceKey, label: `${entry.label} price`, color },
-        ];
-        if (showVolume) {
-          items.push({
-            key: entry.volumeKey,
-            label: `${entry.label} volume`,
-            color,
-            dashed: true,
-          });
-        }
-        return items;
-      }),
-    [series, showVolume],
+      series.map((entry, index) => ({
+        key: entry.priceKey,
+        label: entry.label,
+        color: seriesColor(index, entry.key),
+      })),
+    [series],
   );
 
-  const legendKeys = useMemo(() => legendItems.map((item) => item.key), [legendItems]);
+  const volumeLegendItems = useMemo<ChartLegendItem[]>(
+    () =>
+      series.map((entry, index) => ({
+        key: entry.volumeKey,
+        label: entry.label,
+        color: seriesColor(index, entry.key),
+      })),
+    [series],
+  );
 
-  const hasChartData = sortedChartData.some((point) =>
+  const priceLegendKeys = useMemo(
+    () => priceLegendItems.map((item) => item.key),
+    [priceLegendItems],
+  );
+  const volumeLegendKeys = useMemo(
+    () => volumeLegendItems.map((item) => item.key),
+    [volumeLegendItems],
+  );
+
+  const hasPriceData = sortedChartData.some((point) =>
     series.some((entry) => {
       const price = point[entry.priceKey];
-      const volume = point[entry.volumeKey];
-      return (typeof price === "number" && Number.isFinite(price))
-        || (typeof volume === "number" && Number.isFinite(volume));
+      return typeof price === "number" && Number.isFinite(price);
     }),
   );
+  const hasVolumeData = sortedChartData.some((point) =>
+    series.some((entry) => {
+      const volume = point[entry.volumeKey];
+      return typeof volume === "number" && Number.isFinite(volume);
+    }),
+  );
+  const hasChartData = hasPriceData || hasVolumeData;
 
   const tabLabel = ioType === "output" ? "output" : "input";
 
@@ -199,8 +321,8 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
           </div>
 
           <p className="osrs-mmg__muted osrs-mmg__breakdown-intro">
-            All {tabLabel} items at your current rate. Solid lines are GE price; dashed lines are GE volume.
-            Click a legend item to hide it; double-click to isolate.
+            All {tabLabel} items, sorted by unit cost. Charts plot the top 10 plus Other.
+            Hover a date to see every visible line. Click a legend item to hide it; double-click to isolate.
             {usingLiveGe ? (
               <>
                 {" "}
@@ -261,86 +383,46 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
           {loadError ? <p className="osrs-mmg__banner osrs-mmg__banner--error">{loadError}</p> : null}
 
           {!loading && hasChartData ? (
-            <div className="osrs-mmg__chart">
-              <ResponsiveContainer width="100%" height={420}>
-                <ComposedChart data={sortedChartData} margin={chartMargin}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={OSRS_CHART_THEME.grid} />
-                  <XAxis
-                    dataKey="period"
-                    tick={axisTick}
-                    stroke={OSRS_CHART_THEME.axis}
-                    {...periodXAxisProps(period)}
-                  />
-                  <YAxis
-                    yAxisId="price"
-                    tick={axisTick}
-                    stroke={OSRS_CHART_THEME.axis}
-                    tickFormatter={(v) => formatGpCompact(v)}
-                  />
-                  {showVolume ? (
-                    <YAxis
-                      yAxisId="volume"
-                      orientation="right"
-                      tick={axisTick}
-                      stroke={OSRS_CHART_THEME.axis}
-                      tickFormatter={formatVolume}
-                    />
-                  ) : null}
-                  <Tooltip
-                    content={({ active, payload, label }) => (
-                      <BreakdownTooltip
-                        active={active}
-                        payload={payload}
-                        label={label}
-                        period={period}
-                      />
-                    )}
-                    {...tooltipProps}
-                  />
-                  {series.flatMap((entry: BreakdownSeries, index: number) => {
-                    const color = seriesColor(index);
-                    const linesForSeries = [
-                      <Line
-                        key={entry.priceKey}
-                        yAxisId="price"
-                        type="monotone"
-                        dataKey={entry.priceKey}
-                        name={`${entry.label} price`}
-                        stroke={color}
-                        connectNulls
-                        dot={false}
-                        hide={legend.hiddenKeys.has(entry.priceKey)}
-                        legendType="none"
-                      />,
-                    ];
-                    if (showVolume) {
-                      linesForSeries.push(
-                        <Line
-                          key={entry.volumeKey}
-                          yAxisId="volume"
-                          type="monotone"
-                          dataKey={entry.volumeKey}
-                          name={`${entry.label} volume`}
-                          stroke={color}
-                          strokeDasharray="5 4"
-                          connectNulls
-                          dot={false}
-                          hide={legend.hiddenKeys.has(entry.volumeKey)}
-                          legendType="none"
-                        />,
-                      );
-                    }
-                    return linesForSeries;
-                  })}
-                </ComposedChart>
-              </ResponsiveContainer>
-              <OsrsMmgChartLegend
-                items={legendItems}
-                hiddenKeys={legend.hiddenKeys}
-                onToggle={legend.toggle}
-                onIsolate={(key) => legend.isolate(key, legendKeys)}
-                onShowAll={legend.showAll}
-              />
+            <div className="osrs-mmg__chart-stack">
+              {hasPriceData ? (
+                <BreakdownLinesChart
+                  title="GE price"
+                  data={sortedChartData}
+                  period={period}
+                  series={series}
+                  valueKey="priceKey"
+                  yTickFormatter={(value) => formatGpCompact(value)}
+                  formatValue={formatGp}
+                  hiddenKeys={priceLegend.hiddenKeys}
+                  legendItems={priceLegendItems}
+                  onToggle={priceLegend.toggle}
+                  onIsolate={(key) => priceLegend.isolate(key, priceLegendKeys)}
+                  onShowAll={priceLegend.showAll}
+                  height={360}
+                />
+              ) : (
+                <p className="osrs-mmg__muted">No GE price history available for these items.</p>
+              )}
+              {showVolume && hasVolumeData ? (
+                <BreakdownLinesChart
+                  title="GE volume"
+                  data={sortedChartData}
+                  period={period}
+                  series={series}
+                  valueKey="volumeKey"
+                  yTickFormatter={formatVolume}
+                  formatValue={formatVolume}
+                  hiddenKeys={volumeLegend.hiddenKeys}
+                  legendItems={volumeLegendItems}
+                  onToggle={volumeLegend.toggle}
+                  onIsolate={(key) => volumeLegend.isolate(key, volumeLegendKeys)}
+                  onShowAll={volumeLegend.showAll}
+                  height={300}
+                />
+              ) : null}
+              {showVolume && !hasVolumeData ? (
+                <p className="osrs-mmg__muted">No GE volume history available for these items.</p>
+              ) : null}
             </div>
           ) : null}
 

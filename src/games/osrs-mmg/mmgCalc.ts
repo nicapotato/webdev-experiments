@@ -69,5 +69,12 @@ export function listBreakdownLines(
   const lines = ioType === "input" ? calc.inputs : calc.outputs;
   return [...lines]
     .map((line) => toRankedLine(line, ioType))
-    .sort((a, b) => Math.abs(b.gpPerHour) - Math.abs(a.gpPerHour));
+    .sort((a, b) => {
+      const aCost = unitCostGp(a);
+      const bCost = unitCostGp(b);
+      if (aCost == null && bCost == null) return 0;
+      if (aCost == null) return 1;
+      if (bCost == null) return -1;
+      return bCost - aCost;
+    });
 }
