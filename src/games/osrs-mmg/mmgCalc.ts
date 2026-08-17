@@ -1,4 +1,4 @@
-import type { IoLine, IoLineAtKph, ItemBreakdownRank, MmgCalcResult, MmgGuide, RankedBreakdownLine } from "./types";
+import type { IoLine, IoLineAtKph, MmgCalcResult, MmgGuide, RankedBreakdownLine } from "./types";
 
 function scaleLine(line: IoLine, kph: number): IoLineAtKph {
   return {
@@ -41,6 +41,17 @@ export function formatQty(value: number): string {
   return value.toPrecision(3);
 }
 
+export function unitCostGp(line: Pick<IoLine, "qtyPerCompletion" | "gpPerCompletion">): number | null {
+  if (!Number.isFinite(line.qtyPerCompletion) || line.qtyPerCompletion === 0) return null;
+  const value = line.gpPerCompletion / line.qtyPerCompletion;
+  return Number.isFinite(value) ? value : null;
+}
+
+export function formatUnitCost(line: Pick<IoLine, "qtyPerCompletion" | "gpPerCompletion">): string {
+  const value = unitCostGp(line);
+  return value == null ? "—" : formatGp(value);
+}
+
 function toRankedLine(line: IoLineAtKph, ioType: RankedBreakdownLine["ioType"]): RankedBreakdownLine {
   return {
     ...line,
@@ -49,15 +60,14 @@ function toRankedLine(line: IoLineAtKph, ioType: RankedBreakdownLine["ioType"]):
   };
 }
 
-export function rankItemBreakdown(guide: MmgGuide, kph: number, topN = 5): ItemBreakdownRank {
+export function listBreakdownLines(
+  guide: MmgGuide,
+  kph: number,
+  ioType: RankedBreakdownLine["ioType"],
+): RankedBreakdownLine[] {
   const calc = calcAtKph(guide, kph);
-  const all = [
-    ...calc.inputs.map((line) => toRankedLine(line, "input")),
-    ...calc.outputs.map((line) => toRankedLine(line, "output")),
-  ];
-  const sorted = [...all].sort((a, b) => Math.abs(b.gpPerHour) - Math.abs(a.gpPerHour));
-  return {
-    top: sorted.slice(0, topN),
-    other: sorted.slice(topN),
-  };
+  const lines = ioType === "input" ? calc.inputs : calc.outputs;
+  return [...lines]
+    .map((line) => toRankedLine(line, ioType))
+    .sort((a, b) => Math.abs(b.gpPerHour) - Math.abs(a.gpPerHour));
 }

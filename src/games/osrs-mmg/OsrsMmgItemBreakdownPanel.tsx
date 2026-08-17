@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
   ComposedChart,
-  Legend,
   Line,
   ResponsiveContainer,
   Tooltip,
@@ -10,17 +9,18 @@ import {
   YAxis,
 } from "recharts";
 
-import { axisTick, chartMargin, legendProps, OSRS_CHART_THEME, tooltipProps } from "./chartTheme";
+import { axisTick, chartMargin, OSRS_CHART_THEME, tooltipProps } from "./chartTheme";
 import {
   fetchMethodIoLines,
   fetchMethodItemMetrics,
   hasPriceMetricsData,
 } from "./duckdbQueries";
 import { fetchMethodItemMetricsFromGeApi } from "./gePricesApi";
-import { buildItemBreakdownChartData, OTHER_SERIES_KEY, type BreakdownSeries } from "./itemBreakdown";
-import { formatGp, formatGpCompact, rankItemBreakdown } from "./mmgCalc";
+import { buildItemBreakdownChartData, type BreakdownSeries } from "./itemBreakdown";
+import { formatGp, formatGpCompact, formatUnitCost, listBreakdownLines } from "./mmgCalc";
+import { OsrsMmgChartLegend, useChartLegendVisibility, type ChartLegendItem } from "./OsrsMmgChartLegend";
 import { comparePeriodKeys, formatPeriodTooltipLabel, periodXAxisProps } from "./periodFormat";
-import type { MmgGuide, PeriodGranularity } from "./types";
+import type { BreakdownIoType, MmgGuide, PeriodGranularity } from "./types";
 
 type Props = {
   methodId: string;
@@ -29,11 +29,12 @@ type Props = {
 };
 
 const PERIODS: PeriodGranularity[] = ["day", "week", "month", "quarter", "year"];
+const IO_TABS: { id: BreakdownIoType; label: string }[] = [
+  { id: "output", label: "Output" },
+  { id: "input", label: "Input" },
+];
 
-function seriesColor(index: number, seriesKey: string): string {
-  if (seriesKey === OTHER_SERIES_KEY) {
-    return OSRS_CHART_THEME.otherSeries;
-  }
+function seriesColor(index: number): string {
   return OSRS_CHART_THEME.colors[index % OSRS_CHART_THEME.colors.length];
 }
 
@@ -50,8 +51,8 @@ function BreakdownTooltip({
   period,
 }: {
   active?: boolean;
-  payload?: { dataKey?: string; name?: string; value?: number; color?: string }[];
-  label?: string;
+  payload?: { dataKey?: unknown; name?: unknown; value?: unknown; color?: string }[];
+  label?: unknown;
   period: PeriodGranularity;
 }) {
   if (!active || !payload?.length || label == null) return null;
@@ -59,16 +60,16 @@ function BreakdownTooltip({
   const entry = payload[0];
   const dataKey = String(entry.dataKey ?? "");
   const isVolume = dataKey.endsWith("__volume");
-  const value = entry.value;
-  if (value == null || !Number.isFinite(value)) return null;
+  const value = typeof entry.value === "number" ? entry.value : Number(entry.value);
+  if (!Number.isFinite(value)) return null;
 
   return (
     <div className="osrs-mmg__chart-tooltip" style={tooltipProps.contentStyle}>
       <p className="osrs-mmg__chart-tooltip-label">
-        {formatPeriodTooltipLabel(label, period)}
+        {formatPeriodTooltipLabel(String(label), period)}
       </p>
       <p className="osrs-mmg__chart-tooltip-value" style={{ color: entry.color }}>
-        {entry.name}: {isVolume ? formatVolume(value) : formatGp(value)}
+        {String(entry.name ?? "")}: {isVolume ? formatVolume(value) : formatGp(value)}
       </p>
     </div>
   );
@@ -76,14 +77,19 @@ function BreakdownTooltip({
 
 export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
   const [enabled, setEnabled] = useState(false);
+  const [ioType, setIoType] = useState<BreakdownIoType>("output");
   const [period, setPeriod] = useState<PeriodGranularity>("week");
   const [showVolume, setShowVolume] = useState(true);
   const [rows, setRows] = useState<Awaited<ReturnType<typeof fetchMethodItemMetrics>>>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [usingLiveGe, setUsingLiveGe] = useState(false);
+  const legend = useChartLegendVisibility(`${methodId}:${ioType}:${showVolume}`);
 
-  const rank = useMemo(() => rankItemBreakdown(guide, kph), [guide, kph]);
+  const lines = useMemo(
+    () => listBreakdownLines(guide, kph, ioType),
+    [guide, kph, ioType],
+  );
 
   useEffect(() => {
     if (!enabled) return;
@@ -123,14 +129,36 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
   }, [enabled, methodId, period]);
 
   const { chartData, series } = useMemo(
-    () => buildItemBreakdownChartData(rows, rank, kph),
-    [rows, rank, kph],
+    () => buildItemBreakdownChartData(rows, lines),
+    [rows, lines],
   );
 
   const sortedChartData = useMemo(
     () => [...chartData].sort((a, b) => comparePeriodKeys(String(a.period), String(b.period))),
     [chartData],
   );
+
+  const legendItems = useMemo(
+    () =>
+      series.flatMap((entry: BreakdownSeries, index: number) => {
+        const color = seriesColor(index);
+        const items: ChartLegendItem[] = [
+          { key: entry.priceKey, label: `${entry.label} price`, color },
+        ];
+        if (showVolume) {
+          items.push({
+            key: entry.volumeKey,
+            label: `${entry.label} volume`,
+            color,
+            dashed: true,
+          });
+        }
+        return items;
+      }),
+    [series, showVolume],
+  );
+
+  const legendKeys = useMemo(() => legendItems.map((item) => item.key), [legendItems]);
 
   const hasChartData = sortedChartData.some((point) =>
     series.some((entry) => {
@@ -140,6 +168,8 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
         || (typeof volume === "number" && Number.isFinite(volume));
     }),
   );
+
+  const tabLabel = ioType === "output" ? "output" : "input";
 
   return (
     <section className="osrs-mmg__panel osrs-mmg__trends osrs-mmg__item-breakdown">
@@ -153,8 +183,24 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
 
       {enabled ? (
         <>
+          <div className="osrs-mmg__tabs" role="tablist" aria-label="Item breakdown type">
+            {IO_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={tab.id === ioType}
+                className={tab.id === ioType ? "osrs-mmg__tab is-active" : "osrs-mmg__tab"}
+                onClick={() => setIoType(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           <p className="osrs-mmg__muted osrs-mmg__breakdown-intro">
-            Top 5 items by |GP/h| at your current rate, plus Other for the rest. Solid lines are GE price; dashed lines are GE volume.
+            All {tabLabel} items at your current rate. Solid lines are GE price; dashed lines are GE volume.
+            Click a legend item to hide it; double-click to isolate.
             {usingLiveGe ? (
               <>
                 {" "}
@@ -163,31 +209,32 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
             ) : null}
           </p>
 
-          <table className="osrs-mmg__table osrs-mmg__table--compact">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>GP/h</th>
-                <th>Qty/h</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rank.top.map((line) => (
-                <tr key={line.lineKey}>
-                  <td>{line.itemName}</td>
-                  <td>{formatGp(line.gpPerHour)}</td>
-                  <td>{line.qtyPerHour.toLocaleString("en-GB", { maximumFractionDigits: 2 })}</td>
-                </tr>
-              ))}
-              {rank.other.length > 0 ? (
-                <tr>
-                  <td>Other ({rank.other.length} items)</td>
-                  <td>{formatGp(rank.other.reduce((sum, line) => sum + line.gpPerHour, 0))}</td>
-                  <td>—</td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+          {lines.length === 0 ? (
+            <p className="osrs-mmg__muted">No {tabLabel} items for this method.</p>
+          ) : (
+            <div className="osrs-mmg__breakdown-table-scroll">
+              <table className="osrs-mmg__table osrs-mmg__table--compact">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Unit cost</th>
+                    <th>GP/h</th>
+                    <th>Qty/h</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lines.map((line) => (
+                    <tr key={line.lineKey}>
+                      <td>{line.itemName}</td>
+                      <td>{formatUnitCost(line)}</td>
+                      <td>{formatGp(line.gpPerHour)}</td>
+                      <td>{line.qtyPerHour.toLocaleString("en-GB", { maximumFractionDigits: 2 })}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div className="osrs-mmg__period-row">
             {PERIODS.map((p) => (
@@ -240,13 +287,19 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
                     />
                   ) : null}
                   <Tooltip
-                    content={(props) => <BreakdownTooltip {...props} period={period} />}
+                    content={({ active, payload, label }) => (
+                      <BreakdownTooltip
+                        active={active}
+                        payload={payload}
+                        label={label}
+                        period={period}
+                      />
+                    )}
                     {...tooltipProps}
                   />
-                  <Legend {...legendProps} />
                   {series.flatMap((entry: BreakdownSeries, index: number) => {
-                    const color = seriesColor(index, entry.key);
-                    const lines = [
+                    const color = seriesColor(index);
+                    const linesForSeries = [
                       <Line
                         key={entry.priceKey}
                         yAxisId="price"
@@ -256,10 +309,12 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
                         stroke={color}
                         connectNulls
                         dot={false}
+                        hide={legend.hiddenKeys.has(entry.priceKey)}
+                        legendType="none"
                       />,
                     ];
                     if (showVolume) {
-                      lines.push(
+                      linesForSeries.push(
                         <Line
                           key={entry.volumeKey}
                           yAxisId="volume"
@@ -270,13 +325,22 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
                           strokeDasharray="5 4"
                           connectNulls
                           dot={false}
+                          hide={legend.hiddenKeys.has(entry.volumeKey)}
+                          legendType="none"
                         />,
                       );
                     }
-                    return lines;
+                    return linesForSeries;
                   })}
                 </ComposedChart>
               </ResponsiveContainer>
+              <OsrsMmgChartLegend
+                items={legendItems}
+                hiddenKeys={legend.hiddenKeys}
+                onToggle={legend.toggle}
+                onIsolate={(key) => legend.isolate(key, legendKeys)}
+                onShowAll={legend.showAll}
+              />
             </div>
           ) : null}
 

@@ -13,8 +13,20 @@ export const OSRS_CHART_THEME = {
     border: "#d0d7de",
     text: "#1f2328",
   },
-  colors: ["#0969da", "#8250df", "#1a7f37", "#cf222e", "#bf8700", "#57606a"],
-  otherSeries: "#57606a",
+  colors: [
+    "#0969da",
+    "#8250df",
+    "#1a7f37",
+    "#cf222e",
+    "#bf8700",
+    "#57606a",
+    "#0550ae",
+    "#a40e26",
+    "#116329",
+    "#6639ba",
+    "#9a6700",
+    "#24292f",
+  ],
 } as const;
 
 export const axisTick = { fill: OSRS_CHART_THEME.axis, fontSize: 11 };

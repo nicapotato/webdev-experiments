@@ -126,11 +126,6 @@ export type RankedBreakdownLine = IoLineAtKph & {
   lineKey: string;
 };
 
-export type ItemBreakdownRank = {
-  top: RankedBreakdownLine[];
-  other: RankedBreakdownLine[];
-};
-
 export type MethodItemMetricRow = {
   period: string;
   wikiSlug: string;

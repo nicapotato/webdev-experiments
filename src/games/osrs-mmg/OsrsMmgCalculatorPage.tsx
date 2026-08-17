@@ -4,7 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { isLiveDataEnabled } from "./dataConfig";
 import { fetchGuide } from "./duckdbQueries";
 import { getUserKph, setUserKph } from "./kphPreferences";
-import { calcAtKph, formatGp, formatQty } from "./mmgCalc";
+import { calcAtKph, formatGp, formatQty, formatUnitCost } from "./mmgCalc";
 import { OsrsMmgDataBanner } from "./OsrsMmgDataBanner";
 import { OsrsMmgItemBreakdownPanel } from "./OsrsMmgItemBreakdownPanel";
 import { OsrsMmgSkillRequirements } from "./OsrsMmgSkillRequirements";
@@ -28,6 +28,7 @@ function LineTable({
           <tr>
             <th>Qty/h</th>
             <th>Item</th>
+            <th>Unit cost</th>
             <th>GP/h</th>
           </tr>
         </thead>
@@ -36,6 +37,7 @@ function LineTable({
             <tr key={line.wikiSlug}>
               <td>{formatQty(line.qtyPerHour)} ×</td>
               <td>{line.itemName}</td>
+              <td>{formatUnitCost(line)}</td>
               <td>{formatGp(line.gpPerHour)}</td>
             </tr>
           ))}
