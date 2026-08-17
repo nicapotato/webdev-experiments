@@ -23,6 +23,14 @@ body,
   min-width: 320px;
 }
 
+/* MMG is a long document, not a locked game viewport */
+html:has(.osrs-mmg),
+html:has(.osrs-mmg) body,
+html:has(.osrs-mmg) #root {
+  height: auto;
+  min-height: 0;
+}
+
 /* Home: natural scroll height */
 .app-root--home {
   min-height: 100%;
@@ -119,6 +127,18 @@ body,
 
 .app-root--game:has(.osrs-mmg) .floating-back__glyph {
   opacity: 1;
+}
+
+.app-root--game:has(.osrs-mmg) {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.app-root--game:has(.osrs-mmg) .iframe-stage {
+  flex: 0 0 auto;
+  overflow: visible;
+  background: #ffffff;
 }
 
 /* Iframe / react game: fills full viewport (no header band) */
@@ -1413,10 +1433,18 @@ body,
 
   max-width: 1400px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.5rem 1.5rem 0.5rem;
   color: var(--osrs-text);
   background: var(--osrs-bg);
   font-family: system-ui, sans-serif;
+}
+
+.osrs-mmg > :last-child {
+  margin-bottom: 0;
+}
+
+.osrs-mmg .osrs-mmg__panel:last-child {
+  margin-bottom: 0;
 }
 
 .osrs-mmg__header h1 {
@@ -2646,7 +2674,7 @@ body,
 
 @media (max-width: 640px) {
   .osrs-mmg {
-    padding: 4.25rem 0.65rem 1rem;
+    padding: 4.25rem 0.65rem 0.5rem;
     padding-left: max(0.65rem, env(safe-area-inset-left));
     padding-right: max(0.65rem, env(safe-area-inset-right));
   }

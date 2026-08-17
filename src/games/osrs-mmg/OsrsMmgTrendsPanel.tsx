@@ -207,7 +207,7 @@ export function OsrsMmgTrendsPanel({
 
       {mode === "topN" && comparisonChartData.length > 0 ? (
         <div className="osrs-mmg__chart">
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={340}>
             <ComposedChart data={comparisonChartData} margin={chartMargin}>
               <CartesianGrid strokeDasharray="3 3" stroke={OSRS_CHART_THEME.grid} />
               <XAxis
@@ -226,17 +226,34 @@ export function OsrsMmgTrendsPanel({
                 labelFormatter={(label) => formatPeriodTooltipLabel(String(label), period)}
                 {...tooltipProps}
               />
-              <Legend {...legendProps} />
               {methodNames.map((name, i) => (
                 <Line
                   key={name}
                   type="monotone"
                   dataKey={name}
                   stroke={OSRS_CHART_THEME.colors[i % OSRS_CHART_THEME.colors.length]}
+                  legendType="none"
                 />
               ))}
             </ComposedChart>
           </ResponsiveContainer>
+          <div className="osrs-mmg__chart-legend-wrap">
+            <ul className="osrs-mmg__chart-legend">
+              {methodNames.map((name, i) => (
+                <li key={name}>
+                  <span className="osrs-mmg__chart-legend-item">
+                    <span
+                      className="osrs-mmg__chart-legend-swatch"
+                      style={{
+                        background: OSRS_CHART_THEME.colors[i % OSRS_CHART_THEME.colors.length],
+                      }}
+                    />
+                    {name}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       ) : null}
 
