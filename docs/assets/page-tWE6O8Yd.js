@@ -1,17 +1,17 @@
-import { a as _, h as q, f as X, r as t, j as e, t as p } from "./index-BmVL6oCJ.js";
-import { B as u } from "./button-Bzdivpdo.js";
+import { a as _, h as q, f as X, r as t, j as e, t as p } from "./index-CFCoourc.js";
+import { B as u } from "./button-D1H9CCKv.js";
 import { r as Z, C as P, e as E, k as Q, D as h, f as ee, j as se } from "./snake-game-multiplayer-CvBkv9C2.js";
 import { g as te } from "./player-utils-sDKa8flh.js";
-import { u as re, a as ae } from "./multiplayer-join-gate-DQcU7Svo.js";
-import { S as T } from "./SnakePlayBackground-QLVxgJ-i.js";
-import { A as oe } from "./arrow-left-BSCiFVoH.js";
-import { R as k, U as ne } from "./users-BS4NCVPP.js";
-import { G as le } from "./grid-3x3-B8aNigCv.js";
-import { W as ie } from "./wifi-DT3fuNvc.js";
-import "./utils-BFe-5Bbo.js";
+import { u as re, a as ae } from "./multiplayer-join-gate-Cu-80EoH.js";
+import { S as T } from "./SnakePlayBackground-xTZzU6JQ.js";
+import { A as oe } from "./arrow-left-sbhbw8p8.js";
+import { R as k, U as ne } from "./users-DC6vj2po.js";
+import { G as le } from "./grid-3x3-CW2dwg8P.js";
+import { W as ie } from "./wifi-DDjKosls.js";
+import "./utils-Cfc2KNsw.js";
 import "./clsx-B-dksMZM.js";
 import "./gin-DHzzR3IR.js";
-import "./createLucideIcon-mjYreKf_.js";
+import "./createLucideIcon-BvAdo6mr.js";
 function ve() {
   var _a;
   const w = _(), G = q(), [A] = X(), f = re("snake"), F = (_a = G.state) == null ? void 0 : _a.roomPassword, R = t.useMemo(() => {
