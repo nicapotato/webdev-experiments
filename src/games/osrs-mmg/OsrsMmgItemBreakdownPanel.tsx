@@ -199,7 +199,9 @@ export function OsrsMmgItemBreakdownPanel({ methodId, guide, kph }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [usingLiveGe, setUsingLiveGe] = useState(false);
   const priceLegend = useChartLegendVisibility(`${methodId}:${ioType}:price`);
-  const volumeLegend = useChartLegendVisibility(`${methodId}:${ioType}:volume`);
+  const volumeLegend = useChartLegendVisibility(`${methodId}:${ioType}:volume`, [
+    `${OTHER_SERIES_KEY}__volume`,
+  ]);
 
   const lines = useMemo(
     () => listBreakdownLines(guide, kph, ioType),

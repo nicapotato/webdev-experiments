@@ -17,11 +17,19 @@ type Props = {
 
 const CLICK_DELAY_MS = 250;
 
-export function useChartLegendVisibility(resetKey: string) {
-  const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(() => new Set());
+export function useChartLegendVisibility(
+  resetKey: string,
+  initialHiddenKeys: readonly string[] = [],
+) {
+  const initialHiddenRef = useRef(initialHiddenKeys);
+  initialHiddenRef.current = initialHiddenKeys;
+
+  const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(
+    () => new Set(initialHiddenKeys),
+  );
 
   useEffect(() => {
-    setHiddenKeys(new Set());
+    setHiddenKeys(new Set(initialHiddenRef.current));
   }, [resetKey]);
 
   function toggle(key: string) {
