@@ -10,18 +10,6 @@ import { IframeGamePage } from "./IframeGamePage";
 import ChessPage from "./games/chess/page.jsx";
 import CheckersPage from "./games/checkers/page.jsx";
 
-const OsrsMmgRankingsPage = lazy(
-  () => import("./games/osrs-mmg/OsrsMmgRankingsPage"),
-);
-
-const OsrsMmgCalculatorPage = lazy(
-  () => import("./games/osrs-mmg/OsrsMmgCalculatorPage"),
-);
-
-const OsrsCharacterPage = lazy(
-  () => import("./games/osrs-character/OsrsCharacterPage"),
-);
-
 const MotherloadPage = lazy(() => import("./games/motherload/page.jsx"));
 const SnakeSinglePlayerPage = lazy(() =>
   import("./games/snake/SnakeSinglePlayerPage").then((m) => ({
@@ -55,57 +43,6 @@ export function App() {
             <Route path="/" element={<Hub />} />
             {/* /play/... avoids clashing with static /games/<id>/index.html on GitHub Pages */}
             <Route path="/play/:id" element={<IframeGamePage />} />
-
-            <Route
-              path="/osrs-mmg"
-              element={
-                <GameShell title="OSRS MMG Rankings">
-                  <Suspense
-                    fallback={
-                      <div className="flex flex-1 items-center justify-center bg-black text-white">
-                        Loading…
-                      </div>
-                    }
-                  >
-                    <OsrsMmgRankingsPage />
-                  </Suspense>
-                </GameShell>
-              }
-            />
-
-            <Route
-              path="/osrs-mmg/m/:methodId"
-              element={
-                <GameShell title="OSRS MMG Calculator">
-                  <Suspense
-                    fallback={
-                      <div className="flex flex-1 items-center justify-center bg-black text-white">
-                        Loading…
-                      </div>
-                    }
-                  >
-                    <OsrsMmgCalculatorPage />
-                  </Suspense>
-                </GameShell>
-              }
-            />
-
-            <Route
-              path="/osrs-mmg/c"
-              element={
-                <GameShell title="OSRS Character">
-                  <Suspense
-                    fallback={
-                      <div className="flex flex-1 items-center justify-center bg-black text-white">
-                        Loading…
-                      </div>
-                    }
-                  >
-                    <OsrsCharacterPage />
-                  </Suspense>
-                </GameShell>
-              }
-            />
 
             <Route
               path="/motherload"
